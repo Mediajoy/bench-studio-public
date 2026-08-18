@@ -5,13 +5,34 @@
 //
 //   node build_registry.mjs
 //
-// Writes ./registry.json. Re-run whenever you add a model to ROSTER.
+// Writes ./registry.json and ./registry-diff-report.json. Re-run whenever you
+// add a model to ROSTER, or periodically to catch schema drift/staleness
+// (see check_freshness.mjs for the 30-day staleness flag on recently-used
+// models). PRD v5 Phase 3.
 
-import { writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+
+// Every model in ROSTER is accessed through fal's commercial API — none of
+// these are self-hosted open-weight checkpoints, so "proprietary-api" is the
+// accurate default license for the whole roster today. An entry can set its
+// own `license` (and, for a self-hosted model that's since been pulled or
+// superseded, `deprecated_after: "<ISO date>"`) to override this default —
+// see PROHIBITED_LICENSES below for what a generate call refuses outright.
+const DEFAULT_LICENSE = "proprietary-api";
+
+// Mirrors shot-builder's providers/av_models.json license-gate vocabulary
+// (PRD v5 §1.1) so a bad edit to ROSTER can't accidentally make a
+// non-commercial/research-only model reachable through Bench either — even
+// though no current roster entry uses one of these.
+export const PROHIBITED_LICENSES = new Set([
+  "non-commercial",
+  "research-only",
+  "unclear",
+]);
 
 // The curated roster: the CURRENT flagship of each family, not last year's.
 // Verified against fal's live catalog on 2026-08-12. Run `node check_stale.mjs`
@@ -190,6 +211,10 @@ async function fetchModel(entry) {
   const meta = doc.info?.["x-fal-metadata"] ?? {};
   const input = findInputSchema(doc, entry.id);
   const props = input?.properties ?? {};
+  const license = entry.license ?? DEFAULT_LICENSE;
+  if (PROHIBITED_LICENSES.has(license)) {
+    throw new Error(`${entry.id}: license '${license}' is prohibited (PRD v5 §1.1) — refusing to build a registry entry for it.`);
+  }
 
   const imageInputs = IMAGE_PARAMS.filter((p) => p.name in props);
   const imageParam = imageInputs[0] ?? null;
@@ -215,6 +240,9 @@ async function fetchModel(entry) {
 
   return {
     ...entry,
+    license,
+    deprecated_after: entry.deprecated_after ?? null,
+    last_verified: new Date().toISOString(),
     category: meta.category ?? null,
     thumbnail: meta.thumbnailUrl ?? null,
     // These are derived from the endpoint schema, not the roster metadata.
@@ -233,27 +261,74 @@ async function fetchModel(entry) {
   };
 }
 
-const models = [];
-const failed = [];
-for (const entry of ROSTER) {
-  try {
-    models.push(await fetchModel(entry));
-    process.stdout.write(".");
-  } catch (err) {
-    failed.push({ id: entry.id, error: String(err) });
-    process.stdout.write("x");
-  }
+// Diffable subset — excludes last_verified/generated_at/thumbnail so a
+// no-change re-run reports zero diffs instead of "every model's timestamp
+// changed" noise. This is what buildDiffReport() compares.
+function diffableModel(model) {
+  const { last_verified, thumbnail, ...rest } = model;
+  return rest;
 }
-process.stdout.write("\n");
 
-const registry = {
-  generated_at: new Date().toISOString(),
-  source: "fal.ai public OpenAPI queue schemas",
-  count: models.length,
-  models,
-  failed,
-};
+export function buildDiffReport(previous, current) {
+  const prevById = new Map((previous?.models ?? []).map((m) => [m.id, diffableModel(m)]));
+  const curById = new Map(current.models.map((m) => [m.id, diffableModel(m)]));
+  const added = [...curById.keys()].filter((id) => !prevById.has(id));
+  const removed = [...prevById.keys()].filter((id) => !curById.has(id));
+  const changed = [];
+  for (const id of curById.keys()) {
+    if (!prevById.has(id)) continue;
+    const before = JSON.stringify(prevById.get(id));
+    const after = JSON.stringify(curById.get(id));
+    if (before !== after) changed.push(id);
+  }
+  return {
+    generated_at: current.generated_at,
+    compared_against: previous?.generated_at ?? null,
+    added,
+    removed,
+    changed,
+    unchanged_count: curById.size - added.length - changed.length,
+  };
+}
 
-writeFileSync(join(HERE, "registry.json"), JSON.stringify(registry, null, 2));
-console.log(`wrote registry.json: ${models.length} models, ${failed.length} failed`);
-if (failed.length) console.log(failed);
+// Guard the actual fetch loop behind the CLI check (matches
+// build_capabilities.mjs's pattern) — this module is also imported by
+// tests for buildDiffReport()/PROHIBITED_LICENSES, and importing it must
+// never trigger 37 live HTTP calls as a side effect.
+const isCli = process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
+if (isCli) {
+  const models = [];
+  const failed = [];
+  for (const entry of ROSTER) {
+    try {
+      models.push(await fetchModel(entry));
+      process.stdout.write(".");
+    } catch (err) {
+      failed.push({ id: entry.id, error: String(err) });
+      process.stdout.write("x");
+    }
+  }
+  process.stdout.write("\n");
+
+  const registry = {
+    generated_at: new Date().toISOString(),
+    source: "fal.ai public OpenAPI queue schemas",
+    count: models.length,
+    models,
+    failed,
+  };
+
+  const registryPath = join(HERE, "registry.json");
+  const previous = existsSync(registryPath) ? JSON.parse(readFileSync(registryPath, "utf8")) : null;
+  const diff = buildDiffReport(previous, registry);
+
+  writeFileSync(registryPath, JSON.stringify(registry, null, 2));
+  writeFileSync(join(HERE, "registry-diff-report.json"), JSON.stringify(diff, null, 2));
+
+  console.log(`wrote registry.json: ${models.length} models, ${failed.length} failed`);
+  if (failed.length) console.log(failed);
+  console.log(
+    `diff vs previous run: +${diff.added.length} added, -${diff.removed.length} removed, ` +
+    `~${diff.changed.length} changed, ${diff.unchanged_count} unchanged`
+  );
+}

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-12T18:57:37.821Z",
+  "generated_at": "2026-08-18T02:59:53.611Z",
   "source": "fal.ai public OpenAPI queue schemas",
   "count": 37,
   "models": [
@@ -11,6 +11,9 @@
       "vendor": "Black Forest Labs",
       "tier": "fastest",
       "pair": "fal-ai/flux-2-pro/edit",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:40.499Z",
       "category": "text-to-image",
       "thumbnail": "https://v3b.fal.media/files/b/0a871486/tX7YdfQViGtCE7ZjxOCph_5f5262a21e9e426e8981ea9513d11999.jpg",
       "image_input": null,
@@ -96,6 +99,9 @@
       "label": "FLUX.2 pro",
       "vendor": "Black Forest Labs",
       "pair": "fal-ai/flux-2-pro/edit",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:40.752Z",
       "category": "text-to-image",
       "thumbnail": "https://v3b.fal.media/files/b/penguin/UfryXXm9my6IM8HsoP9FL_054c2c2953dc491996904114c6e04836.jpg",
       "image_input": null,
@@ -107,23 +113,6 @@
         "prompt"
       ],
       "params": {
-        "output_format": {
-          "name": "output_format",
-          "type": "string",
-          "title": "Output Format",
-          "description": "The format of the generated image.",
-          "enum": [
-            "jpeg",
-            "png"
-          ],
-          "default": "jpeg"
-        },
-        "seed": {
-          "name": "seed",
-          "type": "integer",
-          "title": "Seed",
-          "description": "The seed to use for the generation."
-        },
         "image_size": {
           "name": "image_size",
           "type": "string",
@@ -139,12 +128,29 @@
           ],
           "default": "landscape_4_3"
         },
+        "seed": {
+          "name": "seed",
+          "type": "integer",
+          "title": "Seed",
+          "description": "The seed to use for the generation."
+        },
         "enable_safety_checker": {
           "name": "enable_safety_checker",
           "type": "boolean",
           "title": "Enable Safety Checker",
           "description": "Whether to enable the safety checker. Disabling it requires account authorization; unauthorized requests are always checked.",
           "default": true
+        },
+        "output_format": {
+          "name": "output_format",
+          "type": "string",
+          "title": "Output Format",
+          "description": "The format of the generated image.",
+          "enum": [
+            "jpeg",
+            "png"
+          ],
+          "default": "jpeg"
         }
       }
     },
@@ -155,6 +161,9 @@
       "label": "Nano Banana Pro",
       "vendor": "Google",
       "pair": "fal-ai/nano-banana-pro/edit",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:40.992Z",
       "category": "text-to-image",
       "thumbnail": "https://v3b.fal.media/files/b/0a8691ce/SR0_u1zPJbx8jCIO6bJR0_8c83f0d66bbd48f3b55f825117941f84.jpg",
       "image_input": null,
@@ -166,17 +175,20 @@
         "prompt"
       ],
       "params": {
-        "resolution": {
-          "name": "resolution",
-          "type": "string",
-          "title": "Resolution",
-          "description": "The resolution of the image to generate.",
-          "enum": [
-            "1K",
-            "2K",
-            "4K"
-          ],
-          "default": "1K"
+        "seed": {
+          "name": "seed",
+          "type": "integer",
+          "title": "Seed",
+          "description": "The seed for the random number generator."
+        },
+        "num_images": {
+          "name": "num_images",
+          "type": "integer",
+          "title": "Number of Images",
+          "description": "The number of images to generate.",
+          "default": 1,
+          "min": 1,
+          "max": 4
         },
         "aspect_ratio": {
           "name": "aspect_ratio",
@@ -198,11 +210,17 @@
           ],
           "default": "1:1"
         },
-        "seed": {
-          "name": "seed",
-          "type": "integer",
-          "title": "Seed",
-          "description": "The seed for the random number generator."
+        "resolution": {
+          "name": "resolution",
+          "type": "string",
+          "title": "Resolution",
+          "description": "The resolution of the image to generate.",
+          "enum": [
+            "1K",
+            "2K",
+            "4K"
+          ],
+          "default": "1K"
         },
         "output_format": {
           "name": "output_format",
@@ -215,15 +233,6 @@
             "webp"
           ],
           "default": "png"
-        },
-        "num_images": {
-          "name": "num_images",
-          "type": "integer",
-          "title": "Number of Images",
-          "description": "The number of images to generate.",
-          "default": 1,
-          "min": 1,
-          "max": 4
         }
       }
     },
@@ -234,6 +243,9 @@
       "label": "Nano Banana 2",
       "vendor": "Google",
       "pair": "fal-ai/nano-banana-2/edit",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:41.256Z",
       "category": "text-to-image",
       "thumbnail": "https://v3b.fal.media/files/b/0a900b9e/ptbZcVWIQ_fXGGHfv8Zez_0ea5ca41bdf143a29e21e30a53120672.jpg",
       "image_input": null,
@@ -245,16 +257,6 @@
         "prompt"
       ],
       "params": {
-        "thinking_level": {
-          "name": "thinking_level",
-          "type": "string",
-          "title": "Thinking Level",
-          "description": "When set, enables model thinking with the given level ('minimal' or 'high') and includes thoughts in the generation. Omit to disable.",
-          "enum": [
-            "minimal",
-            "high"
-          ]
-        },
         "num_images": {
           "name": "num_images",
           "type": "integer",
@@ -263,6 +265,12 @@
           "default": 1,
           "min": 1,
           "max": 4
+        },
+        "seed": {
+          "name": "seed",
+          "type": "integer",
+          "title": "Seed",
+          "description": "The seed for the random number generator."
         },
         "aspect_ratio": {
           "name": "aspect_ratio",
@@ -288,24 +296,6 @@
           ],
           "default": "auto"
         },
-        "output_format": {
-          "name": "output_format",
-          "type": "string",
-          "title": "Output Format",
-          "description": "The format of the generated image.",
-          "enum": [
-            "jpeg",
-            "png",
-            "webp"
-          ],
-          "default": "png"
-        },
-        "seed": {
-          "name": "seed",
-          "type": "integer",
-          "title": "Seed",
-          "description": "The seed for the random number generator."
-        },
         "resolution": {
           "name": "resolution",
           "type": "string",
@@ -318,6 +308,28 @@
             "4K"
           ],
           "default": "1K"
+        },
+        "thinking_level": {
+          "name": "thinking_level",
+          "type": "string",
+          "title": "Thinking Level",
+          "description": "When set, enables model thinking with the given level ('minimal' or 'high') and includes thoughts in the generation. Omit to disable.",
+          "enum": [
+            "minimal",
+            "high"
+          ]
+        },
+        "output_format": {
+          "name": "output_format",
+          "type": "string",
+          "title": "Output Format",
+          "description": "The format of the generated image.",
+          "enum": [
+            "jpeg",
+            "png",
+            "webp"
+          ],
+          "default": "png"
         }
       }
     },
@@ -328,6 +340,9 @@
       "label": "GPT Image 2",
       "vendor": "OpenAI",
       "pair": "openai/gpt-image-2/edit",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:41.524Z",
       "category": "text-to-image",
       "thumbnail": "https://v3b.fal.media/files/b/0a970c4a/BkrYELYOiaZMXCw-pgRcB_QlgOenEx.png",
       "image_input": null,
@@ -339,18 +354,6 @@
         "prompt"
       ],
       "params": {
-        "num_images": {
-          "name": "num_images",
-          "type": "integer",
-          "title": "Number of Images",
-          "description": "Number of images to generate",
-          "default": 1,
-          "min": 1,
-          "max": 4,
-          "examples": [
-            1
-          ]
-        },
         "quality": {
           "name": "quality",
           "type": "string",
@@ -363,18 +366,6 @@
             "high"
           ],
           "default": "high"
-        },
-        "output_format": {
-          "name": "output_format",
-          "type": "string",
-          "title": "Output Format",
-          "description": "Output format for the images",
-          "enum": [
-            "jpeg",
-            "png",
-            "webp"
-          ],
-          "default": "png"
         },
         "image_size": {
           "name": "image_size",
@@ -391,6 +382,30 @@
             "auto"
           ],
           "default": "landscape_4_3"
+        },
+        "output_format": {
+          "name": "output_format",
+          "type": "string",
+          "title": "Output Format",
+          "description": "Output format for the images",
+          "enum": [
+            "jpeg",
+            "png",
+            "webp"
+          ],
+          "default": "png"
+        },
+        "num_images": {
+          "name": "num_images",
+          "type": "integer",
+          "title": "Number of Images",
+          "description": "Number of images to generate",
+          "default": 1,
+          "min": 1,
+          "max": 4,
+          "examples": [
+            1
+          ]
         }
       }
     },
@@ -401,6 +416,9 @@
       "label": "Seedream 5 pro",
       "vendor": "ByteDance",
       "pair": "bytedance/seedream/v5/pro/edit",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:41.972Z",
       "category": "text-to-image",
       "thumbnail": "https://v3b.fal.media/files/b/0aa1561a/Rb0DDLUI2sx4gevoh1HKt.jpg",
       "image_input": null,
@@ -412,15 +430,14 @@
         "prompt"
       ],
       "params": {
-        "enable_safety_checker": {
-          "name": "enable_safety_checker",
-          "type": "boolean",
-          "title": "Enable Safety Checker",
-          "description": "If set to true, the safety checker will be enabled. Disabling it requires account authorization; unauthorized requests are always checked.",
-          "default": true,
-          "examples": [
-            true
-          ]
+        "num_images": {
+          "name": "num_images",
+          "type": "integer",
+          "title": "Num Images",
+          "description": "Number of separate model generations to run with the prompt.",
+          "default": 1,
+          "min": 1,
+          "max": 6
         },
         "image_size": {
           "name": "image_size",
@@ -439,6 +456,16 @@
           ],
           "default": "auto_2K"
         },
+        "enable_safety_checker": {
+          "name": "enable_safety_checker",
+          "type": "boolean",
+          "title": "Enable Safety Checker",
+          "description": "If set to true, the safety checker will be enabled. Disabling it requires account authorization; unauthorized requests are always checked.",
+          "default": true,
+          "examples": [
+            true
+          ]
+        },
         "output_format": {
           "name": "output_format",
           "type": "string",
@@ -452,15 +479,6 @@
           "examples": [
             "jpeg"
           ]
-        },
-        "num_images": {
-          "name": "num_images",
-          "type": "integer",
-          "title": "Num Images",
-          "description": "Number of separate model generations to run with the prompt.",
-          "default": 1,
-          "min": 1,
-          "max": 6
         }
       }
     },
@@ -471,6 +489,9 @@
       "label": "Qwen Image 3",
       "vendor": "Alibaba",
       "pair": "alibaba/qwen-image-3/edit",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:42.412Z",
       "category": "text-to-image",
       "thumbnail": "https://v3b.fal.media/files/b/0aa32176/fKEJboHYu3FM-sgXnS9j1.jpg",
       "image_input": null,
@@ -482,22 +503,6 @@
         "prompt"
       ],
       "params": {
-        "num_images": {
-          "name": "num_images",
-          "type": "integer",
-          "title": "Num Images",
-          "description": "The number of images to generate.",
-          "default": 1,
-          "min": 1,
-          "max": 4
-        },
-        "enable_safety_checker": {
-          "name": "enable_safety_checker",
-          "type": "boolean",
-          "title": "Enable Safety Checker",
-          "description": "Enable content moderation for input and output. Disabling it requires account authorization; unauthorized requests are always checked.",
-          "default": true
-        },
         "negative_prompt": {
           "name": "negative_prompt",
           "type": "string",
@@ -506,11 +511,12 @@
           "default": "",
           "max_length": 500
         },
-        "seed": {
-          "name": "seed",
-          "type": "integer",
-          "title": "Seed",
-          "description": "Random seed for reproducibility (0-2147483647)."
+        "enable_safety_checker": {
+          "name": "enable_safety_checker",
+          "type": "boolean",
+          "title": "Enable Safety Checker",
+          "description": "Enable content moderation for input and output. Disabling it requires account authorization; unauthorized requests are always checked.",
+          "default": true
         },
         "enable_prompt_expansion": {
           "name": "enable_prompt_expansion",
@@ -518,6 +524,33 @@
           "title": "Enable Prompt Expansion",
           "description": "Enable automatic LLM prompt rewriting for better results.",
           "default": true
+        },
+        "num_images": {
+          "name": "num_images",
+          "type": "integer",
+          "title": "Num Images",
+          "description": "The number of images to generate.",
+          "default": 1,
+          "min": 1,
+          "max": 6
+        },
+        "seed": {
+          "name": "seed",
+          "type": "integer",
+          "title": "Seed",
+          "description": "Random seed for reproducibility (0-2147483647)."
+        },
+        "output_format": {
+          "name": "output_format",
+          "type": "string",
+          "title": "Output Format",
+          "description": "The format of the generated image.",
+          "enum": [
+            "jpeg",
+            "png",
+            "webp"
+          ],
+          "default": "png"
         },
         "image_size": {
           "name": "image_size",
@@ -533,18 +566,6 @@
             "landscape_16_9"
           ],
           "default": "square_hd"
-        },
-        "output_format": {
-          "name": "output_format",
-          "type": "string",
-          "title": "Output Format",
-          "description": "The format of the generated image.",
-          "enum": [
-            "jpeg",
-            "png",
-            "webp"
-          ],
-          "default": "png"
         }
       }
     },
@@ -554,6 +575,9 @@
       "lane": "t2i",
       "label": "Recraft v4.1",
       "vendor": "Recraft",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:42.707Z",
       "category": "text-to-image",
       "thumbnail": "https://v3b.fal.media/files/b/0a9a2972/dIomIOjaf_WjuINZkjGWQ_e2a8500d97f74dfdad75ba8cbd41d6e5.jpg",
       "image_input": null,
@@ -565,13 +589,6 @@
         "prompt"
       ],
       "params": {
-        "enable_safety_checker": {
-          "name": "enable_safety_checker",
-          "type": "boolean",
-          "title": "Enable Safety Checker",
-          "description": "If set to true, the safety checker will be enabled. Disabling it requires account authorization; unauthorized requests are always checked.",
-          "default": true
-        },
         "image_size": {
           "name": "image_size",
           "type": "string",
@@ -586,6 +603,13 @@
             "landscape_16_9"
           ],
           "default": "square_hd"
+        },
+        "enable_safety_checker": {
+          "name": "enable_safety_checker",
+          "type": "boolean",
+          "title": "Enable Safety Checker",
+          "description": "If set to true, the safety checker will be enabled. Disabling it requires account authorization; unauthorized requests are always checked.",
+          "default": true
         }
       }
     },
@@ -595,6 +619,9 @@
       "lane": "t2i",
       "label": "Grok Imagine 2",
       "vendor": "xAI",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:43.027Z",
       "category": "text-to-image",
       "thumbnail": "https://v3b.fal.media/files/b/0aa53f80/jz23bpxsEx0-ROlZEErD0.jpg",
       "image_input": null,
@@ -606,38 +633,6 @@
         "prompt"
       ],
       "params": {
-        "resolution": {
-          "name": "resolution",
-          "type": "string",
-          "title": "Resolution",
-          "description": "Resolution of the generated image. `1k` for standard resolution, `2k` for high resolution.",
-          "enum": [
-            "1k",
-            "2k"
-          ],
-          "default": "1k"
-        },
-        "num_images": {
-          "name": "num_images",
-          "type": "integer",
-          "title": "Number of Images",
-          "description": "Number of images to generate.",
-          "default": 1,
-          "min": 1,
-          "max": 4
-        },
-        "output_format": {
-          "name": "output_format",
-          "type": "string",
-          "title": "Output Format",
-          "description": "The format of the generated image.",
-          "enum": [
-            "jpeg",
-            "png",
-            "webp"
-          ],
-          "default": "jpeg"
-        },
         "aspect_ratio": {
           "name": "aspect_ratio",
           "type": "string",
@@ -670,6 +665,38 @@
             "medium"
           ],
           "default": "medium"
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "string",
+          "title": "Resolution",
+          "description": "Resolution of the generated image. `1k` for standard resolution, `2k` for high resolution.",
+          "enum": [
+            "1k",
+            "2k"
+          ],
+          "default": "1k"
+        },
+        "output_format": {
+          "name": "output_format",
+          "type": "string",
+          "title": "Output Format",
+          "description": "The format of the generated image.",
+          "enum": [
+            "jpeg",
+            "png",
+            "webp"
+          ],
+          "default": "jpeg"
+        },
+        "num_images": {
+          "name": "num_images",
+          "type": "integer",
+          "title": "Number of Images",
+          "description": "Number of images to generate.",
+          "default": 1,
+          "min": 1,
+          "max": 4
         }
       }
     },
@@ -679,6 +706,9 @@
       "lane": "i2i",
       "label": "Nano Banana Pro edit",
       "vendor": "Google",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:43.845Z",
       "category": "image-to-image",
       "thumbnail": "https://v3b.fal.media/files/b/0a9c2f0f/p3rXI18zMYTBz1M0qP2h4_b9a2087ce0b64cd788cb5ec067edc26e.jpg",
       "image_input": {
@@ -717,17 +747,20 @@
         "image_urls"
       ],
       "params": {
-        "resolution": {
-          "name": "resolution",
-          "type": "string",
-          "title": "Resolution",
-          "description": "The resolution of the image to generate.",
-          "enum": [
-            "1K",
-            "2K",
-            "4K"
-          ],
-          "default": "1K"
+        "seed": {
+          "name": "seed",
+          "type": "integer",
+          "title": "Seed",
+          "description": "The seed for the random number generator."
+        },
+        "num_images": {
+          "name": "num_images",
+          "type": "integer",
+          "title": "Number of Images",
+          "description": "The number of images to generate.",
+          "default": 1,
+          "min": 1,
+          "max": 4
         },
         "aspect_ratio": {
           "name": "aspect_ratio",
@@ -749,24 +782,6 @@
           ],
           "default": "auto"
         },
-        "seed": {
-          "name": "seed",
-          "type": "integer",
-          "title": "Seed",
-          "description": "The seed for the random number generator."
-        },
-        "output_format": {
-          "name": "output_format",
-          "type": "string",
-          "title": "Output Format",
-          "description": "The format of the generated image.",
-          "enum": [
-            "jpeg",
-            "png",
-            "webp"
-          ],
-          "default": "png"
-        },
         "image_urls": {
           "name": "image_urls",
           "type": "array",
@@ -782,14 +797,29 @@
             ]
           ]
         },
-        "num_images": {
-          "name": "num_images",
-          "type": "integer",
-          "title": "Number of Images",
-          "description": "The number of images to generate.",
-          "default": 1,
-          "min": 1,
-          "max": 4
+        "resolution": {
+          "name": "resolution",
+          "type": "string",
+          "title": "Resolution",
+          "description": "The resolution of the image to generate.",
+          "enum": [
+            "1K",
+            "2K",
+            "4K"
+          ],
+          "default": "1K"
+        },
+        "output_format": {
+          "name": "output_format",
+          "type": "string",
+          "title": "Output Format",
+          "description": "The format of the generated image.",
+          "enum": [
+            "jpeg",
+            "png",
+            "webp"
+          ],
+          "default": "png"
         }
       }
     },
@@ -799,6 +829,9 @@
       "lane": "i2i",
       "label": "Nano Banana 2 edit",
       "vendor": "Google",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:44.085Z",
       "category": "image-to-image",
       "thumbnail": "https://v3b.fal.media/files/b/0a900b75/DHb_RgXoXsYLdvzQz6mdn_95e87a44239c43448939b4c382dd957c.jpg",
       "image_input": {
@@ -810,16 +843,6 @@
         "image_urls"
       ],
       "media_inputs": [
-        {
-          "name": "audio_url",
-          "type": "string",
-          "title": "Audio URL",
-          "description": "Optional audio file to use as input context. Accepts an http(s)/data URL (downloaded and sent inline, max 15MB).",
-          "modality": "audio",
-          "role": "source",
-          "arity": "single",
-          "required": false
-        },
         {
           "name": "image_urls",
           "type": "array",
@@ -850,6 +873,16 @@
           "required": false
         },
         {
+          "name": "audio_url",
+          "type": "string",
+          "title": "Audio URL",
+          "description": "Optional audio file to use as input context. Accepts an http(s)/data URL (downloaded and sent inline, max 15MB).",
+          "modality": "audio",
+          "role": "source",
+          "arity": "single",
+          "required": false
+        },
+        {
           "name": "pdf_url",
           "type": "string",
           "title": "PDF URL",
@@ -866,14 +899,19 @@
         "prompt"
       ],
       "params": {
-        "thinking_level": {
-          "name": "thinking_level",
-          "type": "string",
-          "title": "Thinking Level",
-          "description": "When set, enables model thinking with the given level ('minimal' or 'high') and includes thoughts in the generation. Omit to disable.",
-          "enum": [
-            "minimal",
-            "high"
+        "image_urls": {
+          "name": "image_urls",
+          "type": "array",
+          "title": "Image URLs",
+          "description": "The URLs of the images to use for image-to-image generation or image editing. Optional when at least one of `video_url`, `audio_url`, or `pdf_url` is provided.",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "https://storage.googleapis.com/falserverless/example_inputs/nano-banana-edit-input.png",
+              "https://storage.googleapis.com/falserverless/example_inputs/nano-banana-edit-input-2.png"
+            ]
           ]
         },
         "num_images": {
@@ -885,17 +923,11 @@
           "min": 1,
           "max": 4
         },
-        "output_format": {
-          "name": "output_format",
+        "video_url": {
+          "name": "video_url",
           "type": "string",
-          "title": "Output Format",
-          "description": "The format of the generated image.",
-          "enum": [
-            "jpeg",
-            "png",
-            "webp"
-          ],
-          "default": "png"
+          "title": "Video URL",
+          "description": "Optional video to use as input context. Accepts an http(s)/data URL to a video file (downloaded and sent inline, max 15MB) or a YouTube URL (passed through to the model without downloading)."
         },
         "aspect_ratio": {
           "name": "aspect_ratio",
@@ -921,11 +953,33 @@
           ],
           "default": "auto"
         },
+        "thinking_level": {
+          "name": "thinking_level",
+          "type": "string",
+          "title": "Thinking Level",
+          "description": "When set, enables model thinking with the given level ('minimal' or 'high') and includes thoughts in the generation. Omit to disable.",
+          "enum": [
+            "minimal",
+            "high"
+          ]
+        },
         "audio_url": {
           "name": "audio_url",
           "type": "string",
           "title": "Audio URL",
           "description": "Optional audio file to use as input context. Accepts an http(s)/data URL (downloaded and sent inline, max 15MB)."
+        },
+        "pdf_url": {
+          "name": "pdf_url",
+          "type": "string",
+          "title": "PDF URL",
+          "description": "Optional PDF document to use as input context. Accepts an http(s)/data URL (downloaded and sent inline, max 15MB)."
+        },
+        "seed": {
+          "name": "seed",
+          "type": "integer",
+          "title": "Seed",
+          "description": "The seed for the random number generator."
         },
         "resolution": {
           "name": "resolution",
@@ -940,38 +994,17 @@
           ],
           "default": "1K"
         },
-        "image_urls": {
-          "name": "image_urls",
-          "type": "array",
-          "title": "Image URLs",
-          "description": "The URLs of the images to use for image-to-image generation or image editing. Optional when at least one of `video_url`, `audio_url`, or `pdf_url` is provided.",
-          "items": {
-            "type": "string"
-          },
-          "examples": [
-            [
-              "https://storage.googleapis.com/falserverless/example_inputs/nano-banana-edit-input.png",
-              "https://storage.googleapis.com/falserverless/example_inputs/nano-banana-edit-input-2.png"
-            ]
-          ]
-        },
-        "seed": {
-          "name": "seed",
-          "type": "integer",
-          "title": "Seed",
-          "description": "The seed for the random number generator."
-        },
-        "video_url": {
-          "name": "video_url",
+        "output_format": {
+          "name": "output_format",
           "type": "string",
-          "title": "Video URL",
-          "description": "Optional video to use as input context. Accepts an http(s)/data URL to a video file (downloaded and sent inline, max 15MB) or a YouTube URL (passed through to the model without downloading)."
-        },
-        "pdf_url": {
-          "name": "pdf_url",
-          "type": "string",
-          "title": "PDF URL",
-          "description": "Optional PDF document to use as input context. Accepts an http(s)/data URL (downloaded and sent inline, max 15MB)."
+          "title": "Output Format",
+          "description": "The format of the generated image.",
+          "enum": [
+            "jpeg",
+            "png",
+            "webp"
+          ],
+          "default": "png"
         }
       }
     },
@@ -981,6 +1014,9 @@
       "lane": "i2i",
       "label": "GPT Image 2 edit",
       "vendor": "OpenAI",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:44.368Z",
       "category": "image-to-image",
       "thumbnail": "https://v3b.fal.media/files/b/0a9c2f0d/G7gs81xziNgfaucyi7NO7_cfb3919cd2914dfba679e44ce8bbecdc.jpg",
       "image_input": {
@@ -992,16 +1028,6 @@
         "image_urls"
       ],
       "media_inputs": [
-        {
-          "name": "mask_url",
-          "type": "string",
-          "title": "Mask URL",
-          "description": "The URL of the mask image to use for the generation. This indicates what part of the image to edit.",
-          "modality": "image",
-          "role": "mask",
-          "arity": "single",
-          "required": false
-        },
         {
           "name": "image_urls",
           "type": "array",
@@ -1020,6 +1046,16 @@
           "role": "source",
           "arity": "multiple",
           "required": true
+        },
+        {
+          "name": "mask_url",
+          "type": "string",
+          "title": "Mask URL",
+          "description": "The URL of the mask image to use for the generation. This indicates what part of the image to edit.",
+          "modality": "image",
+          "role": "mask",
+          "arity": "single",
+          "required": false
         }
       ],
       "accepts_image": "multiple",
@@ -1029,18 +1065,6 @@
         "image_urls"
       ],
       "params": {
-        "num_images": {
-          "name": "num_images",
-          "type": "integer",
-          "title": "Number of Images",
-          "description": "Number of images to generate",
-          "default": 1,
-          "min": 1,
-          "max": 4,
-          "examples": [
-            1
-          ]
-        },
         "image_size": {
           "name": "image_size",
           "type": "string",
@@ -1057,37 +1081,6 @@
           ],
           "default": "auto"
         },
-        "quality": {
-          "name": "quality",
-          "type": "string",
-          "title": "Quality",
-          "description": "Quality for the generated image. Use 'auto' to let the model pick the best quality for the prompt.",
-          "enum": [
-            "auto",
-            "low",
-            "medium",
-            "high"
-          ],
-          "default": "high"
-        },
-        "mask_url": {
-          "name": "mask_url",
-          "type": "string",
-          "title": "Mask URL",
-          "description": "The URL of the mask image to use for the generation. This indicates what part of the image to edit."
-        },
-        "output_format": {
-          "name": "output_format",
-          "type": "string",
-          "title": "Output Format",
-          "description": "Output format for the images",
-          "enum": [
-            "jpeg",
-            "png",
-            "webp"
-          ],
-          "default": "png"
-        },
         "image_urls": {
           "name": "image_urls",
           "type": "array",
@@ -1102,6 +1095,49 @@
               "https://v3b.fal.media/files/b/0a8691af/9Se_1_VX1wzTjjTOpWbs9_bb39c2eb-1a41-4749-b1d0-cf134abc8bbf.png"
             ]
           ]
+        },
+        "mask_url": {
+          "name": "mask_url",
+          "type": "string",
+          "title": "Mask URL",
+          "description": "The URL of the mask image to use for the generation. This indicates what part of the image to edit."
+        },
+        "quality": {
+          "name": "quality",
+          "type": "string",
+          "title": "Quality",
+          "description": "Quality for the generated image. Use 'auto' to let the model pick the best quality for the prompt.",
+          "enum": [
+            "auto",
+            "low",
+            "medium",
+            "high"
+          ],
+          "default": "high"
+        },
+        "output_format": {
+          "name": "output_format",
+          "type": "string",
+          "title": "Output Format",
+          "description": "Output format for the images",
+          "enum": [
+            "jpeg",
+            "png",
+            "webp"
+          ],
+          "default": "png"
+        },
+        "num_images": {
+          "name": "num_images",
+          "type": "integer",
+          "title": "Number of Images",
+          "description": "Number of images to generate",
+          "default": 1,
+          "min": 1,
+          "max": 4,
+          "examples": [
+            1
+          ]
         }
       }
     },
@@ -1111,6 +1147,9 @@
       "lane": "i2i",
       "label": "Seedream 5 edit",
       "vendor": "ByteDance",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:45.181Z",
       "category": "image-to-image",
       "thumbnail": "https://v3b.fal.media/files/b/0aa15606/l4xYHHjF6aMrdoonScgXK.jpg",
       "image_input": {
@@ -1159,6 +1198,22 @@
           "min": 1,
           "max": 6
         },
+        "image_urls": {
+          "name": "image_urls",
+          "type": "array",
+          "title": "Image URLs",
+          "description": "List of URLs of input reference images. Up to 10 images are supported; if more are sent, only the last 10 are used.",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "https://storage.googleapis.com/falserverless/example_inputs/seedreamv45/seedream_v45_edit_input_1.png",
+              "https://storage.googleapis.com/falserverless/example_inputs/seedreamv45/seedream_v45_edit_input_2.png",
+              "https://storage.googleapis.com/falserverless/example_inputs/seedreamv45/seedream_v45_edit_input_3.png"
+            ]
+          ]
+        },
         "image_size": {
           "name": "image_size",
           "type": "string",
@@ -1176,6 +1231,16 @@
           ],
           "default": "auto_2K"
         },
+        "enable_safety_checker": {
+          "name": "enable_safety_checker",
+          "type": "boolean",
+          "title": "Enable Safety Checker",
+          "description": "If set to true, the safety checker will be enabled. Disabling it requires account authorization; unauthorized requests are always checked.",
+          "default": true,
+          "examples": [
+            true
+          ]
+        },
         "output_format": {
           "name": "output_format",
           "type": "string",
@@ -1189,32 +1254,6 @@
           "examples": [
             "jpeg"
           ]
-        },
-        "enable_safety_checker": {
-          "name": "enable_safety_checker",
-          "type": "boolean",
-          "title": "Enable Safety Checker",
-          "description": "If set to true, the safety checker will be enabled. Disabling it requires account authorization; unauthorized requests are always checked.",
-          "default": true,
-          "examples": [
-            true
-          ]
-        },
-        "image_urls": {
-          "name": "image_urls",
-          "type": "array",
-          "title": "Image URLs",
-          "description": "List of URLs of input reference images. Up to 10 images are supported; if more are sent, only the last 10 are used.",
-          "items": {
-            "type": "string"
-          },
-          "examples": [
-            [
-              "https://storage.googleapis.com/falserverless/example_inputs/seedreamv45/seedream_v45_edit_input_1.png",
-              "https://storage.googleapis.com/falserverless/example_inputs/seedreamv45/seedream_v45_edit_input_2.png",
-              "https://storage.googleapis.com/falserverless/example_inputs/seedreamv45/seedream_v45_edit_input_3.png"
-            ]
-          ]
         }
       }
     },
@@ -1224,6 +1263,9 @@
       "lane": "i2i",
       "label": "Qwen Image 3 edit",
       "vendor": "Alibaba",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:45.451Z",
       "category": "image-to-image",
       "thumbnail": "https://v3b.fal.media/files/b/0aa32168/Sh5wWmoqniWOUsvLNk1Qu.jpg",
       "image_input": {
@@ -1261,69 +1303,6 @@
         "image_urls"
       ],
       "params": {
-        "num_images": {
-          "name": "num_images",
-          "type": "integer",
-          "title": "Num Images",
-          "description": "The number of images to generate.",
-          "default": 1,
-          "min": 1,
-          "max": 4
-        },
-        "negative_prompt": {
-          "name": "negative_prompt",
-          "type": "string",
-          "title": "Negative Prompt",
-          "description": "Content to avoid in the generated image. Max 500 characters.",
-          "default": "",
-          "max_length": 500
-        },
-        "enable_safety_checker": {
-          "name": "enable_safety_checker",
-          "type": "boolean",
-          "title": "Enable Safety Checker",
-          "description": "Enable content moderation for input and output. Disabling it requires account authorization; unauthorized requests are always checked.",
-          "default": true
-        },
-        "seed": {
-          "name": "seed",
-          "type": "integer",
-          "title": "Seed",
-          "description": "Random seed for reproducibility (0-2147483647)."
-        },
-        "enable_prompt_expansion": {
-          "name": "enable_prompt_expansion",
-          "type": "boolean",
-          "title": "Enable Prompt Expansion",
-          "description": "Enable automatic LLM prompt rewriting for better results.",
-          "default": true
-        },
-        "image_size": {
-          "name": "image_size",
-          "type": "string",
-          "title": "Image Size",
-          "description": "The size of the generated image. If not provided, the model determines the resolution automatically. Total number of pixels must be between 512x512 and 1440x1440.",
-          "enum": [
-            "square_hd",
-            "square",
-            "portrait_4_3",
-            "portrait_16_9",
-            "landscape_4_3",
-            "landscape_16_9"
-          ]
-        },
-        "output_format": {
-          "name": "output_format",
-          "type": "string",
-          "title": "Output Format",
-          "description": "The format of the generated image.",
-          "enum": [
-            "jpeg",
-            "png",
-            "webp"
-          ],
-          "default": "png"
-        },
         "image_urls": {
           "name": "image_urls",
           "type": "array",
@@ -1337,6 +1316,69 @@
               "https://v3b.fal.media/files/b/0a8bf01f/TUehdcnBygWa1-SnEbp3K_image_123.png"
             ]
           ]
+        },
+        "enable_safety_checker": {
+          "name": "enable_safety_checker",
+          "type": "boolean",
+          "title": "Enable Safety Checker",
+          "description": "Enable content moderation for input and output. Disabling it requires account authorization; unauthorized requests are always checked.",
+          "default": true
+        },
+        "negative_prompt": {
+          "name": "negative_prompt",
+          "type": "string",
+          "title": "Negative Prompt",
+          "description": "Content to avoid in the generated image. Max 500 characters.",
+          "default": "",
+          "max_length": 500
+        },
+        "enable_prompt_expansion": {
+          "name": "enable_prompt_expansion",
+          "type": "boolean",
+          "title": "Enable Prompt Expansion",
+          "description": "Enable automatic LLM prompt rewriting for better results.",
+          "default": true
+        },
+        "seed": {
+          "name": "seed",
+          "type": "integer",
+          "title": "Seed",
+          "description": "Random seed for reproducibility (0-2147483647)."
+        },
+        "num_images": {
+          "name": "num_images",
+          "type": "integer",
+          "title": "Num Images",
+          "description": "The number of images to generate.",
+          "default": 1,
+          "min": 1,
+          "max": 6
+        },
+        "output_format": {
+          "name": "output_format",
+          "type": "string",
+          "title": "Output Format",
+          "description": "The format of the generated image.",
+          "enum": [
+            "jpeg",
+            "png",
+            "webp"
+          ],
+          "default": "png"
+        },
+        "image_size": {
+          "name": "image_size",
+          "type": "string",
+          "title": "Image Size",
+          "description": "The size of the generated image. If not provided, the model determines the resolution automatically. Total number of pixels must be between 512x512 and 2048x2048.",
+          "enum": [
+            "square_hd",
+            "square",
+            "portrait_4_3",
+            "portrait_16_9",
+            "landscape_4_3",
+            "landscape_16_9"
+          ]
         }
       }
     },
@@ -1346,6 +1388,9 @@
       "lane": "i2i",
       "label": "FLUX.2 pro edit",
       "vendor": "Black Forest Labs",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:45.696Z",
       "category": "image-to-image",
       "thumbnail": "https://v3b.fal.media/files/b/penguin/eZetcrsZI6AQLCD3f5gaI_b173ae004bdd4108bd1be54eb6e49c7a.jpg",
       "image_input": {
@@ -1383,37 +1428,6 @@
         "image_urls"
       ],
       "params": {
-        "output_format": {
-          "name": "output_format",
-          "type": "string",
-          "title": "Output Format",
-          "description": "The format of the generated image.",
-          "enum": [
-            "jpeg",
-            "png"
-          ],
-          "default": "jpeg"
-        },
-        "image_urls": {
-          "name": "image_urls",
-          "type": "array",
-          "title": "Image URLs",
-          "description": "List of URLs of input images for editing",
-          "items": {
-            "type": "string"
-          },
-          "examples": [
-            [
-              "https://storage.googleapis.com/falserverless/example_inputs/flux2_pro_edit_input.png"
-            ]
-          ]
-        },
-        "seed": {
-          "name": "seed",
-          "type": "integer",
-          "title": "Seed",
-          "description": "The seed to use for the generation."
-        },
         "image_size": {
           "name": "image_size",
           "type": "string",
@@ -1436,6 +1450,37 @@
           "title": "Enable Safety Checker",
           "description": "Whether to enable the safety checker. Disabling it requires account authorization; unauthorized requests are always checked.",
           "default": true
+        },
+        "image_urls": {
+          "name": "image_urls",
+          "type": "array",
+          "title": "Image URLs",
+          "description": "List of URLs of input images for editing",
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "https://storage.googleapis.com/falserverless/example_inputs/flux2_pro_edit_input.png"
+            ]
+          ]
+        },
+        "seed": {
+          "name": "seed",
+          "type": "integer",
+          "title": "Seed",
+          "description": "The seed to use for the generation."
+        },
+        "output_format": {
+          "name": "output_format",
+          "type": "string",
+          "title": "Output Format",
+          "description": "The format of the generated image.",
+          "enum": [
+            "jpeg",
+            "png"
+          ],
+          "default": "jpeg"
         }
       }
     },
@@ -1447,6 +1492,9 @@
       "vendor": "Lightricks",
       "tier": "fastest",
       "pair": "lightricks/ltx-2.5/image-to-video/fast",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:45.960Z",
       "category": "text-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0aa5ebb1/szS8gNC3Szq_suLVnrwmV.jpg",
       "image_input": null,
@@ -1458,18 +1506,12 @@
         "prompt"
       ],
       "params": {
-        "resolution": {
-          "name": "resolution",
-          "type": "string",
-          "title": "Resolution",
-          "description": "The resolution of the generated video.",
-          "enum": [
-            "720p",
-            "1080p",
-            "1440p",
-            "2160p"
-          ],
-          "default": "1080p"
+        "generate_audio": {
+          "name": "generate_audio",
+          "type": "boolean",
+          "title": "Generate Audio",
+          "description": "Whether to generate audio for the generated video",
+          "default": true
         },
         "aspect_ratio": {
           "name": "aspect_ratio",
@@ -1482,12 +1524,34 @@
           ],
           "default": "16:9"
         },
-        "generate_audio": {
-          "name": "generate_audio",
-          "type": "boolean",
-          "title": "Generate Audio",
-          "description": "Whether to generate audio for the generated video",
-          "default": true
+        "camera_motion": {
+          "name": "camera_motion",
+          "type": "string",
+          "title": "Camera Motion",
+          "description": "Optional camera motion applied to the generated video.",
+          "enum": [
+            "dolly_in",
+            "dolly_out",
+            "dolly_left",
+            "dolly_right",
+            "jib_up",
+            "jib_down",
+            "static",
+            "focus_shift"
+          ]
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "string",
+          "title": "Resolution",
+          "description": "The resolution of the generated video.",
+          "enum": [
+            "720p",
+            "1080p",
+            "1440p",
+            "2160p"
+          ],
+          "default": "1080p"
         },
         "duration": {
           "name": "duration",
@@ -1506,22 +1570,6 @@
             "auto"
           ],
           "default": "auto"
-        },
-        "camera_motion": {
-          "name": "camera_motion",
-          "type": "string",
-          "title": "Camera Motion",
-          "description": "Optional camera motion applied to the generated video.",
-          "enum": [
-            "dolly_in",
-            "dolly_out",
-            "dolly_left",
-            "dolly_right",
-            "jib_up",
-            "jib_down",
-            "static",
-            "focus_shift"
-          ]
         },
         "fps": {
           "name": "fps",
@@ -1545,6 +1593,9 @@
       "label": "Kling 3 turbo",
       "vendor": "Kuaishou",
       "pair": "fal-ai/kling-video/v3/pro/image-to-video",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:46.314Z",
       "category": "text-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0a9e8d89/LDScfQJoDfPCdVK2OWRky_c8428cc1efc84391b93c08e4a2529c35.jpg",
       "image_input": null,
@@ -1554,6 +1605,18 @@
       "image_param": null,
       "required": [],
       "params": {
+        "aspect_ratio": {
+          "name": "aspect_ratio",
+          "type": "string",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio (width:height) of the generated video.",
+          "enum": [
+            "16:9",
+            "9:16",
+            "1:1"
+          ],
+          "default": "16:9"
+        },
         "duration": {
           "name": "duration",
           "type": "string",
@@ -1584,18 +1647,6 @@
           "items": {
             "type": "object"
           }
-        },
-        "aspect_ratio": {
-          "name": "aspect_ratio",
-          "type": "string",
-          "title": "Aspect Ratio",
-          "description": "The aspect ratio (width:height) of the generated video.",
-          "enum": [
-            "16:9",
-            "9:16",
-            "1:1"
-          ],
-          "default": "16:9"
         }
       }
     },
@@ -1606,6 +1657,9 @@
       "label": "Kling 3 pro",
       "vendor": "Kuaishou",
       "pair": "fal-ai/kling-video/v3/pro/image-to-video",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:47.095Z",
       "category": "text-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0a8cfd13/t6TSkWzl6cFAzvO1PCdDu_f38263f637d245929f03881454951540.jpg",
       "image_input": null,
@@ -1615,13 +1669,12 @@
       "image_param": null,
       "required": [],
       "params": {
-        "negative_prompt": {
-          "name": "negative_prompt",
-          "type": "string",
-          "title": "Negative Prompt",
-          "description": "",
-          "default": "blur, distort, and low quality",
-          "max_length": 2500
+        "generate_audio": {
+          "name": "generate_audio",
+          "type": "boolean",
+          "title": "Generate Audio",
+          "description": "Whether to generate native audio for the video. Supports Chinese and English voice output. Other languages are automatically translated to English. For English speech, use lowercase letters; for acronyms or proper nouns, use uppercase.",
+          "default": true
         },
         "multi_prompt": {
           "name": "multi_prompt",
@@ -1631,18 +1684,6 @@
           "items": {
             "type": "object"
           }
-        },
-        "aspect_ratio": {
-          "name": "aspect_ratio",
-          "type": "string",
-          "title": "Aspect Ratio",
-          "description": "The aspect ratio of the generated video frame",
-          "enum": [
-            "16:9",
-            "9:16",
-            "1:1"
-          ],
-          "default": "16:9"
         },
         "shot_type": {
           "name": "shot_type",
@@ -1655,12 +1696,17 @@
           ],
           "default": "customize"
         },
-        "generate_audio": {
-          "name": "generate_audio",
-          "type": "boolean",
-          "title": "Generate Audio",
-          "description": "Whether to generate native audio for the video. Supports Chinese and English voice output. Other languages are automatically translated to English. For English speech, use lowercase letters; for acronyms or proper nouns, use uppercase.",
-          "default": true
+        "aspect_ratio": {
+          "name": "aspect_ratio",
+          "type": "string",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated video frame",
+          "enum": [
+            "16:9",
+            "9:16",
+            "1:1"
+          ],
+          "default": "16:9"
         },
         "duration": {
           "name": "duration",
@@ -1683,6 +1729,14 @@
             "15"
           ],
           "default": "5"
+        },
+        "negative_prompt": {
+          "name": "negative_prompt",
+          "type": "string",
+          "title": "Negative Prompt",
+          "description": "",
+          "default": "blur, distort, and low quality",
+          "max_length": 2500
         }
       }
     },
@@ -1693,6 +1747,9 @@
       "label": "Seedance 2.5",
       "vendor": "ByteDance",
       "pair": "bytedance/seedance-2.5/image-to-video",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:47.357Z",
       "category": "text-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0aa30edb/Ckq9fPYW5fP_nqcCC-SHh.jpg",
       "image_input": null,
@@ -1704,6 +1761,41 @@
         "prompt"
       ],
       "params": {
+        "generate_audio": {
+          "name": "generate_audio",
+          "type": "boolean",
+          "title": "Generate Audio",
+          "description": "Whether to generate synchronized audio for the video, including sound effects, ambient sounds, and lip-synced speech. The cost of video generation is the same regardless of whether audio is generated or not.",
+          "default": true
+        },
+        "aspect_ratio": {
+          "name": "aspect_ratio",
+          "type": "string",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated video. Use 16:9 for landscape, 9:16 for portrait/vertical, 1:1 for square, 21:9 for ultrawide cinematic, or auto to let the model decide.",
+          "enum": [
+            "auto",
+            "21:9",
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16"
+          ],
+          "default": "auto"
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "string",
+          "title": "Resolution",
+          "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for high quality.",
+          "enum": [
+            "480p",
+            "720p",
+            "1080p"
+          ],
+          "default": "720p"
+        },
         "duration": {
           "name": "duration",
           "type": "string",
@@ -1740,40 +1832,6 @@
             "30"
           ],
           "default": "auto"
-        },
-        "aspect_ratio": {
-          "name": "aspect_ratio",
-          "type": "string",
-          "title": "Aspect Ratio",
-          "description": "The aspect ratio of the generated video. Use 16:9 for landscape, 9:16 for portrait/vertical, 1:1 for square, 21:9 for ultrawide cinematic, or auto to let the model decide.",
-          "enum": [
-            "auto",
-            "21:9",
-            "16:9",
-            "4:3",
-            "1:1",
-            "3:4",
-            "9:16"
-          ],
-          "default": "auto"
-        },
-        "resolution": {
-          "name": "resolution",
-          "type": "string",
-          "title": "Resolution",
-          "description": "Video resolution - 480p for faster generation, 720p for balance.",
-          "enum": [
-            "480p",
-            "720p"
-          ],
-          "default": "720p"
-        },
-        "generate_audio": {
-          "name": "generate_audio",
-          "type": "boolean",
-          "title": "Generate Audio",
-          "description": "Whether to generate synchronized audio for the video, including sound effects, ambient sounds, and lip-synced speech. The cost of video generation is the same regardless of whether audio is generated or not.",
-          "default": true
         }
       }
     },
@@ -1784,6 +1842,9 @@
       "label": "Seedance 2 fast",
       "vendor": "ByteDance",
       "pair": "bytedance/seedance-2.0/reference-to-video",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:47.736Z",
       "category": "text-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0a9c2f1c/JJWaVP5VEiyeEiqaEXWli_321bd6ab4d3f4ee8bf0003a332814416.jpg",
       "image_input": null,
@@ -1795,13 +1856,6 @@
         "prompt"
       ],
       "params": {
-        "generate_audio": {
-          "name": "generate_audio",
-          "type": "boolean",
-          "title": "Generate Audio",
-          "description": "Whether to generate synchronized audio for the video, including sound effects, ambient sounds, and lip-synced speech. The cost of video generation is the same regardless of whether audio is generated or not.",
-          "default": true
-        },
         "resolution": {
           "name": "resolution",
           "type": "string",
@@ -1812,6 +1866,13 @@
             "720p"
           ],
           "default": "720p"
+        },
+        "generate_audio": {
+          "name": "generate_audio",
+          "type": "boolean",
+          "title": "Generate Audio",
+          "description": "Whether to generate synchronized audio for the video, including sound effects, ambient sounds, and lip-synced speech. The cost of video generation is the same regardless of whether audio is generated or not.",
+          "default": true
         },
         "duration": {
           "name": "duration",
@@ -1860,6 +1921,9 @@
       "label": "Hailuo H3",
       "vendor": "MiniMax",
       "pair": "minimax/h3/image-to-video",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:48.058Z",
       "category": "text-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0aa42d8c/uJC3CQO20PyPi5iM7eu3a.jpg",
       "image_input": null,
@@ -1871,6 +1935,20 @@
         "prompt"
       ],
       "params": {
+        "enable_safety_checker": {
+          "name": "enable_safety_checker",
+          "type": "boolean",
+          "title": "Enable Safety Checker",
+          "description": "If set to true, the safety checker will be enabled.",
+          "default": true
+        },
+        "enable_prompt_expansion": {
+          "name": "enable_prompt_expansion",
+          "type": "boolean",
+          "title": "Enable Prompt Expansion",
+          "description": "Whether to expand the prompt with a vision language model before generation.",
+          "default": true
+        },
         "aspect_ratio": {
           "name": "aspect_ratio",
           "type": "string",
@@ -1895,31 +1973,24 @@
           "min": 5,
           "max": 15
         },
-        "enable_safety_checker": {
-          "name": "enable_safety_checker",
-          "type": "boolean",
-          "title": "Enable Safety Checker",
-          "description": "If set to true, the safety checker will be enabled.",
-          "default": true
-        },
         "resolution": {
           "name": "resolution",
           "type": "string",
           "title": "Resolution",
-          "description": "The resolution of the generated video.",
+          "description": "The resolution of the generated video. 480P and 768P are native generation modes; 2K and 4K upscale a 768P base result.",
           "enum": [
+            "480P",
             "768P",
             "2K",
             "4K"
           ],
           "default": "2K"
         },
-        "enable_prompt_expansion": {
-          "name": "enable_prompt_expansion",
-          "type": "boolean",
-          "title": "Enable Prompt Expansion",
-          "description": "Whether to expand the prompt with a vision language model before generation.",
-          "default": true
+        "seed": {
+          "name": "seed",
+          "type": "integer",
+          "title": "Seed",
+          "description": "Random seed. A random seed is selected when omitted."
         }
       }
     },
@@ -1930,6 +2001,9 @@
       "label": "Wan 2.7",
       "vendor": "Alibaba",
       "pair": "wan/v2.6/image-to-video",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:48.506Z",
       "category": "text-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0a94047b/ktfxD5Hs3lGJdXwk7FurU_856b1abaad064b23bb2ae7dee66cf2f3.jpg",
       "image_input": null,
@@ -1952,51 +2026,6 @@
         "prompt"
       ],
       "params": {
-        "negative_prompt": {
-          "name": "negative_prompt",
-          "type": "string",
-          "title": "Negative Prompt",
-          "description": "Content to avoid in the video. Max 500 characters."
-        },
-        "enable_safety_checker": {
-          "name": "enable_safety_checker",
-          "type": "boolean",
-          "title": "Enable Safety Checker",
-          "description": "Enable content moderation for input and output. Disabling it requires account authorization; unauthorized requests are always checked.",
-          "default": true
-        },
-        "enable_prompt_expansion": {
-          "name": "enable_prompt_expansion",
-          "type": "boolean",
-          "title": "Enable Prompt Expansion",
-          "description": "Enable intelligent prompt rewriting.",
-          "default": true
-        },
-        "aspect_ratio": {
-          "name": "aspect_ratio",
-          "type": "string",
-          "title": "Aspect Ratio",
-          "description": "Aspect ratio of the generated video.",
-          "enum": [
-            "16:9",
-            "9:16",
-            "1:1",
-            "4:3",
-            "3:4"
-          ],
-          "default": "16:9"
-        },
-        "resolution": {
-          "name": "resolution",
-          "type": "string",
-          "title": "Resolution",
-          "description": "Output video resolution tier.",
-          "enum": [
-            "720p",
-            "1080p"
-          ],
-          "default": "1080p"
-        },
         "duration": {
           "name": "duration",
           "type": "integer",
@@ -2031,11 +2060,56 @@
           "title": "Seed",
           "description": "Random seed for reproducibility (0-2147483647)."
         },
+        "aspect_ratio": {
+          "name": "aspect_ratio",
+          "type": "string",
+          "title": "Aspect Ratio",
+          "description": "Aspect ratio of the generated video.",
+          "enum": [
+            "16:9",
+            "9:16",
+            "1:1",
+            "4:3",
+            "3:4"
+          ],
+          "default": "16:9"
+        },
+        "enable_prompt_expansion": {
+          "name": "enable_prompt_expansion",
+          "type": "boolean",
+          "title": "Enable Prompt Expansion",
+          "description": "Enable intelligent prompt rewriting.",
+          "default": true
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "string",
+          "title": "Resolution",
+          "description": "Output video resolution tier.",
+          "enum": [
+            "720p",
+            "1080p"
+          ],
+          "default": "1080p"
+        },
+        "enable_safety_checker": {
+          "name": "enable_safety_checker",
+          "type": "boolean",
+          "title": "Enable Safety Checker",
+          "description": "Enable content moderation for input and output. Disabling it requires account authorization; unauthorized requests are always checked.",
+          "default": true
+        },
         "audio_url": {
           "name": "audio_url",
           "type": "string",
           "title": "Audio Url",
           "description": "URL of driving audio. Supports WAV and MP3. Duration: 3-30s. Max 15 MB. If not provided, the model auto-generates matching background music."
+        },
+        "negative_prompt": {
+          "name": "negative_prompt",
+          "type": "string",
+          "title": "Negative Prompt",
+          "description": "Content to avoid in the video. Max 500 characters."
         }
       }
     },
@@ -2046,6 +2120,9 @@
       "label": "Veo 3.1 fast",
       "vendor": "Google",
       "pair": "fal-ai/veo3.1/fast/image-to-video",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:48.800Z",
       "category": "text-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/lion/o5x4rjXr3fAEwQgr4Y5vp_69ee214c658e428ba2f8f8b054d70a0e.jpg",
       "image_input": null,
@@ -2057,23 +2134,11 @@
         "prompt"
       ],
       "params": {
-        "negative_prompt": {
-          "name": "negative_prompt",
-          "type": "string",
-          "title": "Negative Prompt",
-          "description": "A negative prompt to guide the video generation."
-        },
-        "seed": {
-          "name": "seed",
-          "type": "integer",
-          "title": "Seed",
-          "description": "The seed for the random number generator."
-        },
-        "generate_audio": {
-          "name": "generate_audio",
+        "auto_fix": {
+          "name": "auto_fix",
           "type": "boolean",
-          "title": "Generate Audio",
-          "description": "Whether to generate audio for the video.",
+          "title": "Auto Fix",
+          "description": "Whether to automatically attempt to fix prompts that fail content policy or other validation checks by rewriting them.",
           "default": true
         },
         "aspect_ratio": {
@@ -2087,12 +2152,36 @@
           ],
           "default": "16:9"
         },
-        "auto_fix": {
-          "name": "auto_fix",
+        "resolution": {
+          "name": "resolution",
+          "type": "string",
+          "title": "Resolution",
+          "description": "The resolution of the generated video.",
+          "enum": [
+            "720p",
+            "1080p",
+            "4k"
+          ],
+          "default": "720p"
+        },
+        "generate_audio": {
+          "name": "generate_audio",
           "type": "boolean",
-          "title": "Auto Fix",
-          "description": "Whether to automatically attempt to fix prompts that fail content policy or other validation checks by rewriting them.",
+          "title": "Generate Audio",
+          "description": "Whether to generate audio for the video.",
           "default": true
+        },
+        "negative_prompt": {
+          "name": "negative_prompt",
+          "type": "string",
+          "title": "Negative Prompt",
+          "description": "A negative prompt to guide the video generation."
+        },
+        "seed": {
+          "name": "seed",
+          "type": "integer",
+          "title": "Seed",
+          "description": "The seed for the random number generator."
         },
         "duration": {
           "name": "duration",
@@ -2105,18 +2194,6 @@
             "8s"
           ],
           "default": "8s"
-        },
-        "resolution": {
-          "name": "resolution",
-          "type": "string",
-          "title": "Resolution",
-          "description": "The resolution of the generated video.",
-          "enum": [
-            "720p",
-            "1080p",
-            "4k"
-          ],
-          "default": "720p"
         }
       }
     },
@@ -2127,6 +2204,9 @@
       "label": "Veo 3.1",
       "vendor": "Google",
       "pair": "fal-ai/veo3.1/reference-to-video",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:49.050Z",
       "category": "text-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/tiger/TGTZBJyLk9HdwjB6SB90e.png",
       "image_input": null,
@@ -2138,23 +2218,11 @@
         "prompt"
       ],
       "params": {
-        "negative_prompt": {
-          "name": "negative_prompt",
-          "type": "string",
-          "title": "Negative Prompt",
-          "description": "A negative prompt to guide the video generation."
-        },
-        "seed": {
-          "name": "seed",
-          "type": "integer",
-          "title": "Seed",
-          "description": "The seed for the random number generator."
-        },
-        "generate_audio": {
-          "name": "generate_audio",
+        "auto_fix": {
+          "name": "auto_fix",
           "type": "boolean",
-          "title": "Generate Audio",
-          "description": "Whether to generate audio for the video.",
+          "title": "Auto Fix",
+          "description": "Whether to automatically attempt to fix prompts that fail content policy or other validation checks by rewriting them.",
           "default": true
         },
         "aspect_ratio": {
@@ -2168,12 +2236,36 @@
           ],
           "default": "16:9"
         },
-        "auto_fix": {
-          "name": "auto_fix",
+        "resolution": {
+          "name": "resolution",
+          "type": "string",
+          "title": "Resolution",
+          "description": "The resolution of the generated video.",
+          "enum": [
+            "720p",
+            "1080p",
+            "4k"
+          ],
+          "default": "720p"
+        },
+        "generate_audio": {
+          "name": "generate_audio",
           "type": "boolean",
-          "title": "Auto Fix",
-          "description": "Whether to automatically attempt to fix prompts that fail content policy or other validation checks by rewriting them.",
+          "title": "Generate Audio",
+          "description": "Whether to generate audio for the video.",
           "default": true
+        },
+        "negative_prompt": {
+          "name": "negative_prompt",
+          "type": "string",
+          "title": "Negative Prompt",
+          "description": "A negative prompt to guide the video generation."
+        },
+        "seed": {
+          "name": "seed",
+          "type": "integer",
+          "title": "Seed",
+          "description": "The seed for the random number generator."
         },
         "duration": {
           "name": "duration",
@@ -2186,18 +2278,6 @@
             "8s"
           ],
           "default": "8s"
-        },
-        "resolution": {
-          "name": "resolution",
-          "type": "string",
-          "title": "Resolution",
-          "description": "The resolution of the generated video.",
-          "enum": [
-            "720p",
-            "1080p",
-            "4k"
-          ],
-          "default": "720p"
         }
       }
     },
@@ -2207,6 +2287,9 @@
       "lane": "t2v",
       "label": "FLUX.3 video",
       "vendor": "Black Forest Labs",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:49.300Z",
       "category": "text-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0aa2a1ba/d-iPMFNVrztnc6ysi2tPQ.jpg",
       "image_input": null,
@@ -2218,13 +2301,6 @@
         "prompt"
       ],
       "params": {
-        "generate_audio": {
-          "name": "generate_audio",
-          "type": "boolean",
-          "title": "Generate Audio",
-          "description": "Whether to generate audio for the video.",
-          "default": true
-        },
         "resolution": {
           "name": "resolution",
           "type": "string",
@@ -2235,6 +2311,13 @@
             "1080p"
           ],
           "default": "720p"
+        },
+        "generate_audio": {
+          "name": "generate_audio",
+          "type": "boolean",
+          "title": "Generate Audio",
+          "description": "Whether to generate audio for the video.",
+          "default": true
         },
         "duration": {
           "name": "duration",
@@ -2287,6 +2370,9 @@
       "lane": "t2v",
       "label": "Grok Video 1.5",
       "vendor": "xAI",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:49.559Z",
       "category": "text-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0aa44035/2zU-0vqvgLDc1B_n0vut0.jpg",
       "image_input": null,
@@ -2298,27 +2384,6 @@
         "prompt"
       ],
       "params": {
-        "resolution": {
-          "name": "resolution",
-          "type": "string",
-          "title": "Resolution",
-          "description": "Resolution of the output video.",
-          "enum": [
-            "480p",
-            "720p",
-            "1080p"
-          ],
-          "default": "720p"
-        },
-        "duration": {
-          "name": "duration",
-          "type": "integer",
-          "title": "Duration",
-          "description": "Video duration in seconds.",
-          "default": 6,
-          "min": 1,
-          "max": 15
-        },
         "aspect_ratio": {
           "name": "aspect_ratio",
           "type": "string",
@@ -2334,6 +2399,27 @@
             "9:16"
           ],
           "default": "16:9"
+        },
+        "duration": {
+          "name": "duration",
+          "type": "integer",
+          "title": "Duration",
+          "description": "Video duration in seconds.",
+          "default": 6,
+          "min": 1,
+          "max": 15
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "string",
+          "title": "Resolution",
+          "description": "Resolution of the output video.",
+          "enum": [
+            "480p",
+            "720p",
+            "1080p"
+          ],
+          "default": "720p"
         }
       }
     },
@@ -2344,6 +2430,9 @@
       "label": "LTX 2.5 fast i2v",
       "vendor": "Lightricks",
       "tier": "fastest",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:49.830Z",
       "category": "image-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0aa5eb7b/Z8KYWrUqzfkZO1JhyAv56.jpg",
       "image_input": {
@@ -2387,6 +2476,34 @@
         "image_url"
       ],
       "params": {
+        "aspect_ratio": {
+          "name": "aspect_ratio",
+          "type": "string",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated video. If 'auto', the aspect ratio will be determined automatically based on the input image.",
+          "enum": [
+            "auto",
+            "16:9",
+            "9:16"
+          ],
+          "default": "auto"
+        },
+        "camera_motion": {
+          "name": "camera_motion",
+          "type": "string",
+          "title": "Camera Motion",
+          "description": "Optional camera motion applied to the generated video.",
+          "enum": [
+            "dolly_in",
+            "dolly_out",
+            "dolly_left",
+            "dolly_right",
+            "jib_up",
+            "jib_down",
+            "static",
+            "focus_shift"
+          ]
+        },
         "resolution": {
           "name": "resolution",
           "type": "string",
@@ -2399,18 +2516,6 @@
             "2160p"
           ],
           "default": "1080p"
-        },
-        "aspect_ratio": {
-          "name": "aspect_ratio",
-          "type": "string",
-          "title": "Aspect Ratio",
-          "description": "The aspect ratio of the generated video. If 'auto', the aspect ratio will be determined automatically based on the input image.",
-          "enum": [
-            "auto",
-            "16:9",
-            "9:16"
-          ],
-          "default": "auto"
         },
         "duration": {
           "name": "duration",
@@ -2430,22 +2535,6 @@
           ],
           "default": "auto"
         },
-        "image_url": {
-          "name": "image_url",
-          "type": "string",
-          "title": "Start Image URL",
-          "description": "The URL of the start image to use for the generated video.",
-          "examples": [
-            "https://v3b.fal.media/files/b/0a90dd31/uJG2pMMJMcnVeC4PmwnAF_image_004.png"
-          ]
-        },
-        "generate_audio": {
-          "name": "generate_audio",
-          "type": "boolean",
-          "title": "Generate Audio",
-          "description": "Whether to generate audio for the generated video",
-          "default": true
-        },
         "fps": {
           "name": "fps",
           "type": "integer",
@@ -2459,20 +2548,20 @@
           ],
           "default": 25
         },
-        "camera_motion": {
-          "name": "camera_motion",
+        "generate_audio": {
+          "name": "generate_audio",
+          "type": "boolean",
+          "title": "Generate Audio",
+          "description": "Whether to generate audio for the generated video",
+          "default": true
+        },
+        "image_url": {
+          "name": "image_url",
           "type": "string",
-          "title": "Camera Motion",
-          "description": "Optional camera motion applied to the generated video.",
-          "enum": [
-            "dolly_in",
-            "dolly_out",
-            "dolly_left",
-            "dolly_right",
-            "jib_up",
-            "jib_down",
-            "static",
-            "focus_shift"
+          "title": "Start Image URL",
+          "description": "The URL of the start image to use for the generated video.",
+          "examples": [
+            "https://v3b.fal.media/files/b/0a90dd31/uJG2pMMJMcnVeC4PmwnAF_image_004.png"
           ]
         },
         "end_image_url": {
@@ -2489,6 +2578,9 @@
       "lane": "i2v",
       "label": "Kling 3 pro i2v",
       "vendor": "Kuaishou",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:50.110Z",
       "category": "image-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0a9c2fb3/yPzcdzINnY5RdSoEqHc8G_382d4ec9337344ccaacf5599057f6cd0.jpg",
       "image_input": {
@@ -2502,17 +2594,17 @@
       ],
       "media_inputs": [
         {
-          "name": "elements",
-          "type": "array",
-          "title": "Elements",
-          "description": "Elements (characters/objects) to include in the video. Each example can either be an image set (frontal + reference images) or a video. Reference in prompt as @Element1, @Element2, etc.",
-          "items": {
-            "type": "object"
-          },
-          "modality": "mixed",
-          "role": "source",
-          "arity": "multiple",
-          "required": false
+          "name": "start_image_url",
+          "type": "string",
+          "title": "Start Image Url",
+          "description": "URL of the image to be used for the video",
+          "examples": [
+            "https://storage.googleapis.com/falserverless/example_inputs/kling-v3/pro-i2v/start_image.png"
+          ],
+          "modality": "image",
+          "role": "start-frame",
+          "arity": "single",
+          "required": true
         },
         {
           "name": "end_image_url",
@@ -2525,17 +2617,17 @@
           "required": false
         },
         {
-          "name": "start_image_url",
-          "type": "string",
-          "title": "Start Image Url",
-          "description": "URL of the image to be used for the video",
-          "examples": [
-            "https://storage.googleapis.com/falserverless/example_inputs/kling-v3/pro-i2v/start_image.png"
-          ],
-          "modality": "image",
-          "role": "start-frame",
-          "arity": "single",
-          "required": true
+          "name": "elements",
+          "type": "array",
+          "title": "Elements",
+          "description": "Elements (characters/objects) to include in the video. Each example can either be an image set (frontal + reference images) or a video. Reference in prompt as @Element1, @Element2, etc.",
+          "items": {
+            "type": "object"
+          },
+          "modality": "mixed",
+          "role": "source",
+          "arity": "multiple",
+          "required": false
         }
       ],
       "accepts_image": "single",
@@ -2544,29 +2636,6 @@
         "start_image_url"
       ],
       "params": {
-        "negative_prompt": {
-          "name": "negative_prompt",
-          "type": "string",
-          "title": "Negative Prompt",
-          "description": "",
-          "default": "blur, distort, and low quality",
-          "max_length": 2500
-        },
-        "elements": {
-          "name": "elements",
-          "type": "array",
-          "title": "Elements",
-          "description": "Elements (characters/objects) to include in the video. Each example can either be an image set (frontal + reference images) or a video. Reference in prompt as @Element1, @Element2, etc.",
-          "items": {
-            "type": "object"
-          }
-        },
-        "end_image_url": {
-          "name": "end_image_url",
-          "type": "string",
-          "title": "End Image Url",
-          "description": "URL of the image to be used for the end of the video"
-        },
         "start_image_url": {
           "name": "start_image_url",
           "type": "string",
@@ -2575,6 +2644,13 @@
           "examples": [
             "https://storage.googleapis.com/falserverless/example_inputs/kling-v3/pro-i2v/start_image.png"
           ]
+        },
+        "generate_audio": {
+          "name": "generate_audio",
+          "type": "boolean",
+          "title": "Generate Audio",
+          "description": "Whether to generate native audio for the video. Supports Chinese and English voice output. Other languages are automatically translated to English. For English speech, use lowercase letters; for acronyms or proper nouns, use uppercase.",
+          "default": true
         },
         "multi_prompt": {
           "name": "multi_prompt",
@@ -2585,12 +2661,20 @@
             "type": "object"
           }
         },
-        "generate_audio": {
-          "name": "generate_audio",
-          "type": "boolean",
-          "title": "Generate Audio",
-          "description": "Whether to generate native audio for the video. Supports Chinese and English voice output. Other languages are automatically translated to English. For English speech, use lowercase letters; for acronyms or proper nouns, use uppercase.",
-          "default": true
+        "end_image_url": {
+          "name": "end_image_url",
+          "type": "string",
+          "title": "End Image Url",
+          "description": "URL of the image to be used for the end of the video"
+        },
+        "elements": {
+          "name": "elements",
+          "type": "array",
+          "title": "Elements",
+          "description": "Elements (characters/objects) to include in the video. Each example can either be an image set (frontal + reference images) or a video. Reference in prompt as @Element1, @Element2, etc.",
+          "items": {
+            "type": "object"
+          }
         },
         "shot_type": {
           "name": "shot_type",
@@ -2627,6 +2711,14 @@
           "examples": [
             "12"
           ]
+        },
+        "negative_prompt": {
+          "name": "negative_prompt",
+          "type": "string",
+          "title": "Negative Prompt",
+          "description": "",
+          "default": "blur, distort, and low quality",
+          "max_length": 2500
         }
       }
     },
@@ -2636,6 +2728,9 @@
       "lane": "i2v",
       "label": "Seedance 2.5 i2v",
       "vendor": "ByteDance",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:50.380Z",
       "category": "image-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0aa30ef9/4Ux9T9X2458w7LH1AI_oz.jpg",
       "image_input": {
@@ -2679,14 +2774,24 @@
         "image_url"
       ],
       "params": {
-        "image_url": {
-          "name": "image_url",
+        "aspect_ratio": {
+          "name": "aspect_ratio",
           "type": "string",
-          "title": "Image Url",
-          "description": "The URL of the starting frame image to animate. Supported formats: JPEG, PNG, WebP. Max 30 MB.",
-          "examples": [
-            "https://v3b.fal.media/files/b/0a8eba37/Cqg-4Uwzyz4DELfceT1CF_a17e588773ec45b1a9e6f100a787b80b.jpg"
-          ]
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated video. Always \"auto\" for image-to-video",
+          "default": "auto"
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "string",
+          "title": "Resolution",
+          "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for high quality.",
+          "enum": [
+            "480p",
+            "720p",
+            "1080p"
+          ],
+          "default": "720p"
         },
         "duration": {
           "name": "duration",
@@ -2732,29 +2837,20 @@
           "description": "Whether to generate synchronized audio for the video, including sound effects, ambient sounds, and lip-synced speech. The cost of video generation is the same regardless of whether audio is generated or not.",
           "default": true
         },
+        "image_url": {
+          "name": "image_url",
+          "type": "string",
+          "title": "Image Url",
+          "description": "The URL of the starting frame image to animate. Supported formats: JPEG, PNG, WebP. Max 30 MB.",
+          "examples": [
+            "https://v3b.fal.media/files/b/0a8eba37/Cqg-4Uwzyz4DELfceT1CF_a17e588773ec45b1a9e6f100a787b80b.jpg"
+          ]
+        },
         "end_image_url": {
           "name": "end_image_url",
           "type": "string",
           "title": "End Image Url",
           "description": "The URL of the image to use as the last frame of the video. When provided, the generated video will transition from the starting image to this ending image. Supported formats: JPEG, PNG, WebP. Max 30 MB."
-        },
-        "aspect_ratio": {
-          "name": "aspect_ratio",
-          "type": "string",
-          "title": "Aspect Ratio",
-          "description": "The aspect ratio of the generated video. Always \"auto\" for image-to-video",
-          "default": "auto"
-        },
-        "resolution": {
-          "name": "resolution",
-          "type": "string",
-          "title": "Resolution",
-          "description": "Video resolution - 480p for faster generation, 720p for balance.",
-          "enum": [
-            "480p",
-            "720p"
-          ],
-          "default": "720p"
         }
       }
     },
@@ -2764,6 +2860,9 @@
       "lane": "i2v",
       "label": "Hailuo H3 i2v",
       "vendor": "MiniMax",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:51.147Z",
       "category": "image-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0aa42dac/wjm-S2eWgG8vU2uJoRwPx.jpg",
       "image_input": {
@@ -2803,11 +2902,30 @@
         "prompt"
       ],
       "params": {
+        "seed": {
+          "name": "seed",
+          "type": "integer",
+          "title": "Seed",
+          "description": "Random seed. A random seed is selected when omitted."
+        },
+        "enable_safety_checker": {
+          "name": "enable_safety_checker",
+          "type": "boolean",
+          "title": "Enable Safety Checker",
+          "description": "If set to true, the safety checker will be enabled.",
+          "default": true
+        },
         "end_image_url": {
           "name": "end_image_url",
           "type": "string",
           "title": "End Image URL",
           "description": "Optional URL of the image to use as the last frame, for first-to-last keyframe generation."
+        },
+        "image_url": {
+          "name": "image_url",
+          "type": "string",
+          "title": "Image URL",
+          "description": "Optional URL of the image to use as the first frame. When provided, the output aspect ratio follows this image. When omitted, the request is handled as text-to-video (16:9 by default)."
         },
         "duration": {
           "name": "duration",
@@ -2818,25 +2936,13 @@
           "min": 5,
           "max": 15
         },
-        "enable_safety_checker": {
-          "name": "enable_safety_checker",
-          "type": "boolean",
-          "title": "Enable Safety Checker",
-          "description": "If set to true, the safety checker will be enabled.",
-          "default": true
-        },
-        "image_url": {
-          "name": "image_url",
-          "type": "string",
-          "title": "Image URL",
-          "description": "Optional URL of the image to use as the first frame. When provided, the output aspect ratio follows this image. When omitted, the request is handled as text-to-video (16:9 by default)."
-        },
         "resolution": {
           "name": "resolution",
           "type": "string",
           "title": "Resolution",
-          "description": "The resolution of the generated video.",
+          "description": "The resolution of the generated video. 480P and 768P are native generation modes; 2K and 4K upscale a 768P base result.",
           "enum": [
+            "480P",
             "768P",
             "2K",
             "4K"
@@ -2858,6 +2964,9 @@
       "lane": "i2v",
       "label": "Wan 2.6 i2v",
       "vendor": "Alibaba",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:51.581Z",
       "category": "image-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0a86d2e1/KF3SBRRkzqdothbEr6ANe.png",
       "image_input": {
@@ -2900,22 +3009,12 @@
         "image_url"
       ],
       "params": {
-        "enable_safety_checker": {
-          "name": "enable_safety_checker",
-          "type": "boolean",
-          "title": "Enable Safety Checker",
-          "description": "If set to true, the safety checker will be enabled. Disabling it requires account authorization; unauthorized requests are always checked.",
-          "default": true,
-          "examples": [
-            true
-          ]
-        },
-        "enable_prompt_expansion": {
-          "name": "enable_prompt_expansion",
-          "type": "boolean",
-          "title": "Enable Prompt Expansion",
-          "description": "Whether to enable prompt rewriting using LLM.",
-          "default": true
+        "negative_prompt": {
+          "name": "negative_prompt",
+          "type": "string",
+          "title": "Negative Prompt",
+          "description": "Negative prompt to describe content to avoid. Max 500 characters.",
+          "default": ""
         },
         "image_url": {
           "name": "image_url",
@@ -2937,18 +3036,34 @@
           ],
           "default": "1080p"
         },
+        "enable_prompt_expansion": {
+          "name": "enable_prompt_expansion",
+          "type": "boolean",
+          "title": "Enable Prompt Expansion",
+          "description": "Whether to enable prompt rewriting using LLM.",
+          "default": true
+        },
         "seed": {
           "name": "seed",
           "type": "integer",
           "title": "Seed",
           "description": "Random seed for reproducibility. If None, a random seed is chosen."
         },
-        "negative_prompt": {
-          "name": "negative_prompt",
+        "audio_url": {
+          "name": "audio_url",
           "type": "string",
-          "title": "Negative Prompt",
-          "description": "Negative prompt to describe content to avoid. Max 500 characters.",
-          "default": ""
+          "title": "Audio Url",
+          "description": "\nURL of the audio to use as the background music. Must be publicly accessible.\nLimit handling: If the audio duration exceeds the duration value (5, 10, or 15 seconds),\nthe audio is truncated to the first N seconds, and the rest is discarded. If\nthe audio is shorter than the video, the remaining part of the video will be silent.\nFor example, if the audio is 3 seconds long and the video duration is 5 seconds, the\nfirst 3 seconds of the output video will have sound, and the last 2 seconds will be silent.\n- Format: WAV, MP3.\n- Duration: 3 to 30 s.\n- File size: Up to 15 MB.\n"
+        },
+        "enable_safety_checker": {
+          "name": "enable_safety_checker",
+          "type": "boolean",
+          "title": "Enable Safety Checker",
+          "description": "If set to true, the safety checker will be enabled. Disabling it requires account authorization; unauthorized requests are always checked.",
+          "default": true,
+          "examples": [
+            true
+          ]
         },
         "duration": {
           "name": "duration",
@@ -2966,12 +3081,6 @@
             "10",
             "15"
           ]
-        },
-        "audio_url": {
-          "name": "audio_url",
-          "type": "string",
-          "title": "Audio Url",
-          "description": "\nURL of the audio to use as the background music. Must be publicly accessible.\nLimit handling: If the audio duration exceeds the duration value (5, 10, or 15 seconds),\nthe audio is truncated to the first N seconds, and the rest is discarded. If\nthe audio is shorter than the video, the remaining part of the video will be silent.\nFor example, if the audio is 3 seconds long and the video duration is 5 seconds, the\nfirst 3 seconds of the output video will have sound, and the last 2 seconds will be silent.\n- Format: WAV, MP3.\n- Duration: 3 to 30 s.\n- File size: Up to 15 MB.\n"
         }
       }
     },
@@ -2981,6 +3090,9 @@
       "lane": "i2v",
       "label": "Veo 3.1 fast i2v",
       "vendor": "Google",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:51.824Z",
       "category": "image-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/tiger/CcVVXXOo5stpgsAJV_6UO_74aa2dbdc79447e7ae69b533a7863038.jpg",
       "image_input": {
@@ -3013,12 +3125,6 @@
         "image_url"
       ],
       "params": {
-        "negative_prompt": {
-          "name": "negative_prompt",
-          "type": "string",
-          "title": "Negative Prompt",
-          "description": "A negative prompt to guide the video generation."
-        },
         "image_url": {
           "name": "image_url",
           "type": "string",
@@ -3028,18 +3134,12 @@
             "https://storage.googleapis.com/falserverless/example_inputs/veo31_i2v_input.jpg"
           ]
         },
-        "seed": {
-          "name": "seed",
-          "type": "integer",
-          "title": "Seed",
-          "description": "The seed for the random number generator."
-        },
-        "generate_audio": {
-          "name": "generate_audio",
+        "auto_fix": {
+          "name": "auto_fix",
           "type": "boolean",
-          "title": "Generate Audio",
-          "description": "Whether to generate audio for the video.",
-          "default": true
+          "title": "Auto Fix",
+          "description": "Whether to automatically attempt to fix prompts that fail content policy or other validation checks by rewriting them.",
+          "default": false
         },
         "aspect_ratio": {
           "name": "aspect_ratio",
@@ -3053,12 +3153,36 @@
           ],
           "default": "auto"
         },
-        "auto_fix": {
-          "name": "auto_fix",
+        "resolution": {
+          "name": "resolution",
+          "type": "string",
+          "title": "Resolution",
+          "description": "The resolution of the generated video.",
+          "enum": [
+            "720p",
+            "1080p",
+            "4k"
+          ],
+          "default": "720p"
+        },
+        "generate_audio": {
+          "name": "generate_audio",
           "type": "boolean",
-          "title": "Auto Fix",
-          "description": "Whether to automatically attempt to fix prompts that fail content policy or other validation checks by rewriting them.",
-          "default": false
+          "title": "Generate Audio",
+          "description": "Whether to generate audio for the video.",
+          "default": true
+        },
+        "negative_prompt": {
+          "name": "negative_prompt",
+          "type": "string",
+          "title": "Negative Prompt",
+          "description": "A negative prompt to guide the video generation."
+        },
+        "seed": {
+          "name": "seed",
+          "type": "integer",
+          "title": "Seed",
+          "description": "The seed for the random number generator."
         },
         "duration": {
           "name": "duration",
@@ -3071,18 +3195,6 @@
             "8s"
           ],
           "default": "8s"
-        },
-        "resolution": {
-          "name": "resolution",
-          "type": "string",
-          "title": "Resolution",
-          "description": "The resolution of the generated video.",
-          "enum": [
-            "720p",
-            "1080p",
-            "4k"
-          ],
-          "default": "720p"
         }
       }
     },
@@ -3092,6 +3204,9 @@
       "lane": "r2v",
       "label": "Veo 3.1 reference",
       "vendor": "Google",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:52.144Z",
       "category": "image-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/tiger/IwzOGSbzp6e8N00QuLtFF_129417bb24f248298e95c3fa2b1b82fb.jpg",
       "image_input": {
@@ -3131,49 +3246,12 @@
         "image_urls"
       ],
       "params": {
-        "generate_audio": {
-          "name": "generate_audio",
-          "type": "boolean",
-          "title": "Generate Audio",
-          "description": "Whether to generate audio for the video.",
-          "default": true
-        },
-        "aspect_ratio": {
-          "name": "aspect_ratio",
-          "type": "string",
-          "title": "Aspect Ratio",
-          "description": "The aspect ratio of the generated video.",
-          "enum": [
-            "16:9",
-            "9:16"
-          ],
-          "default": "16:9"
-        },
         "auto_fix": {
           "name": "auto_fix",
           "type": "boolean",
           "title": "Auto Fix",
           "description": "Whether to automatically attempt to fix prompts that fail content policy or other validation checks by rewriting them.",
           "default": false
-        },
-        "duration": {
-          "name": "duration",
-          "type": "string",
-          "title": "Duration",
-          "description": "The duration of the generated video.",
-          "default": "8s"
-        },
-        "resolution": {
-          "name": "resolution",
-          "type": "string",
-          "title": "Resolution",
-          "description": "The resolution of the generated video.",
-          "enum": [
-            "720p",
-            "1080p",
-            "4k"
-          ],
-          "default": "720p"
         },
         "image_urls": {
           "name": "image_urls",
@@ -3190,6 +3268,43 @@
               "https://storage.googleapis.com/falserverless/example_inputs/veo31-r2v-input-3.png"
             ]
           ]
+        },
+        "aspect_ratio": {
+          "name": "aspect_ratio",
+          "type": "string",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated video.",
+          "enum": [
+            "16:9",
+            "9:16"
+          ],
+          "default": "16:9"
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "string",
+          "title": "Resolution",
+          "description": "The resolution of the generated video.",
+          "enum": [
+            "720p",
+            "1080p",
+            "4k"
+          ],
+          "default": "720p"
+        },
+        "generate_audio": {
+          "name": "generate_audio",
+          "type": "boolean",
+          "title": "Generate Audio",
+          "description": "Whether to generate audio for the video.",
+          "default": true
+        },
+        "duration": {
+          "name": "duration",
+          "type": "string",
+          "title": "Duration",
+          "description": "The duration of the generated video.",
+          "default": "8s"
         }
       }
     },
@@ -3199,6 +3314,9 @@
       "lane": "r2v",
       "label": "Seedance 2 reference",
       "vendor": "ByteDance",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:52.565Z",
       "category": "image-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0a9c2f1a/nie2992p9QXZaJbgszHZY_d584fa3e77b44d57a33417a48fac06ab.jpg",
       "image_input": {
@@ -3210,20 +3328,6 @@
         "image_urls"
       ],
       "media_inputs": [
-        {
-          "name": "audio_urls",
-          "type": "array",
-          "title": "Audio Urls",
-          "description": "Reference audio to guide video generation. Refer to them in the prompt as @Audio1, @Audio2, etc. Supported formats: MP3, WAV. Up to 3 files, combined duration must not exceed 15 seconds. Max 15 MB per file.If audio is provided, at least one reference image or video is required.",
-          "max_items": 3,
-          "items": {
-            "type": "string"
-          },
-          "modality": "audio",
-          "role": "source",
-          "arity": "multiple",
-          "required": false
-        },
         {
           "name": "image_urls",
           "type": "array",
@@ -3256,6 +3360,20 @@
           "role": "source",
           "arity": "multiple",
           "required": false
+        },
+        {
+          "name": "audio_urls",
+          "type": "array",
+          "title": "Audio Urls",
+          "description": "Reference audio to guide video generation. Refer to them in the prompt as @Audio1, @Audio2, etc. Supported formats: MP3, WAV. Up to 3 files, combined duration must not exceed 15 seconds. Max 15 MB per file.If audio is provided, at least one reference image or video is required.",
+          "max_items": 3,
+          "items": {
+            "type": "string"
+          },
+          "modality": "audio",
+          "role": "source",
+          "arity": "multiple",
+          "required": false
         }
       ],
       "accepts_image": "multiple",
@@ -3264,39 +3382,6 @@
         "prompt"
       ],
       "params": {
-        "audio_urls": {
-          "name": "audio_urls",
-          "type": "array",
-          "title": "Audio Urls",
-          "description": "Reference audio to guide video generation. Refer to them in the prompt as @Audio1, @Audio2, etc. Supported formats: MP3, WAV. Up to 3 files, combined duration must not exceed 15 seconds. Max 15 MB per file.If audio is provided, at least one reference image or video is required.",
-          "max_items": 3,
-          "items": {
-            "type": "string"
-          }
-        },
-        "generate_audio": {
-          "name": "generate_audio",
-          "type": "boolean",
-          "title": "Generate Audio",
-          "description": "Whether to generate synchronized audio for the video, including sound effects, ambient sounds, and lip-synced speech. The cost of video generation is the same regardless of whether audio is generated or not.",
-          "default": true
-        },
-        "aspect_ratio": {
-          "name": "aspect_ratio",
-          "type": "string",
-          "title": "Aspect Ratio",
-          "description": "The aspect ratio of the generated video. Use 16:9 for landscape, 9:16 for portrait/vertical, 1:1 for square, 21:9 for ultrawide cinematic, or auto to let the model decide.",
-          "enum": [
-            "auto",
-            "21:9",
-            "16:9",
-            "4:3",
-            "1:1",
-            "3:4",
-            "9:16"
-          ],
-          "default": "auto"
-        },
         "image_urls": {
           "name": "image_urls",
           "type": "array",
@@ -3311,6 +3396,46 @@
               "https://v3b.fal.media/files/b/0a8eba37/Cqg-4Uwzyz4DELfceT1CF_a17e588773ec45b1a9e6f100a787b80b.jpg"
             ]
           ]
+        },
+        "video_urls": {
+          "name": "video_urls",
+          "type": "array",
+          "title": "Video Urls",
+          "description": "Reference videos to guide video generation. Refer to them in the prompt as @Video1, @Video2, etc. Supported formats: MP4, MOV. Up to 3 videos, combined duration must be between 2 and 15 seconds, total size under 50 MB. Each video must be between ~480p (640x640) and ~720p (834x1112) in resolution.",
+          "max_items": 3,
+          "items": {
+            "type": "string"
+          }
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "string",
+          "title": "Resolution",
+          "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for high quality, 4k for highest quality.",
+          "enum": [
+            "480p",
+            "720p",
+            "1080p",
+            "4k"
+          ],
+          "default": "720p"
+        },
+        "generate_audio": {
+          "name": "generate_audio",
+          "type": "boolean",
+          "title": "Generate Audio",
+          "description": "Whether to generate synchronized audio for the video, including sound effects, ambient sounds, and lip-synced speech. The cost of video generation is the same regardless of whether audio is generated or not.",
+          "default": true
+        },
+        "audio_urls": {
+          "name": "audio_urls",
+          "type": "array",
+          "title": "Audio Urls",
+          "description": "Reference audio to guide video generation. Refer to them in the prompt as @Audio1, @Audio2, etc. Supported formats: MP3, WAV. Up to 3 files, combined duration must not exceed 15 seconds. Max 15 MB per file.If audio is provided, at least one reference image or video is required.",
+          "max_items": 3,
+          "items": {
+            "type": "string"
+          }
         },
         "duration": {
           "name": "duration",
@@ -3334,28 +3459,21 @@
           ],
           "default": "auto"
         },
-        "resolution": {
-          "name": "resolution",
+        "aspect_ratio": {
+          "name": "aspect_ratio",
           "type": "string",
-          "title": "Resolution",
-          "description": "Video resolution - 480p for faster generation, 720p for balance, 1080p for high quality, 4k for highest quality.",
+          "title": "Aspect Ratio",
+          "description": "The aspect ratio of the generated video. Use 16:9 for landscape, 9:16 for portrait/vertical, 1:1 for square, 21:9 for ultrawide cinematic, or auto to let the model decide.",
           "enum": [
-            "480p",
-            "720p",
-            "1080p",
-            "4k"
+            "auto",
+            "21:9",
+            "16:9",
+            "4:3",
+            "1:1",
+            "3:4",
+            "9:16"
           ],
-          "default": "720p"
-        },
-        "video_urls": {
-          "name": "video_urls",
-          "type": "array",
-          "title": "Video Urls",
-          "description": "Reference videos to guide video generation. Refer to them in the prompt as @Video1, @Video2, etc. Supported formats: MP4, MOV. Up to 3 videos, combined duration must be between 2 and 15 seconds, total size under 50 MB. Each video must be between ~480p (640x640) and ~720p (834x1112) in resolution.",
-          "max_items": 3,
-          "items": {
-            "type": "string"
-          }
+          "default": "auto"
         }
       }
     },
@@ -3365,6 +3483,9 @@
       "lane": "r2v",
       "label": "Hailuo H3 reference",
       "vendor": "MiniMax",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:52.921Z",
       "category": "image-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0aa42dcf/3VDKabd7ifjCezrQpdfEI.jpg",
       "image_input": {
@@ -3377,20 +3498,15 @@
       ],
       "media_inputs": [
         {
-          "name": "reference_image_urls",
+          "name": "reference_video_urls",
           "type": "array",
-          "title": "Reference Image URLs",
-          "description": "URLs of subject/style reference images, referenced in the prompt as Image 1, Image 2, and so on. Reference images, videos, and audio clips must add up to at most 12 files.",
-          "max_items": 9,
+          "title": "Reference Video URLs",
+          "description": "URLs of motion/reference video clips (2-15 seconds each, combined duration at most 15 seconds), referenced in the prompt as Video 1, Video 2, and so on. Reference images, videos, and audio clips must add up to at most 12 files.",
+          "max_items": 3,
           "items": {
             "type": "string"
           },
-          "examples": [
-            [
-              "https://storage.googleapis.com/falserverless/example_inputs/hailuo23/pro_i2v_in.jpg"
-            ]
-          ],
-          "modality": "image",
+          "modality": "video",
           "role": "reference",
           "arity": "multiple",
           "required": false
@@ -3410,27 +3526,6 @@
           "required": false
         },
         {
-          "name": "reference_video_urls",
-          "type": "array",
-          "title": "Reference Video URLs",
-          "description": "URLs of motion/reference video clips (2-15 seconds each, combined duration at most 15 seconds), referenced in the prompt as Video 1, Video 2, and so on. Reference images, videos, and audio clips must add up to at most 12 files.",
-          "max_items": 3,
-          "items": {
-            "type": "string"
-          },
-          "modality": "video",
-          "role": "reference",
-          "arity": "multiple",
-          "required": false
-        }
-      ],
-      "accepts_image": "multiple",
-      "image_param": "reference_image_urls",
-      "required": [
-        "prompt"
-      ],
-      "params": {
-        "reference_image_urls": {
           "name": "reference_image_urls",
           "type": "array",
           "title": "Reference Image URLs",
@@ -3443,17 +3538,31 @@
             [
               "https://storage.googleapis.com/falserverless/example_inputs/hailuo23/pro_i2v_in.jpg"
             ]
-          ]
+          ],
+          "modality": "image",
+          "role": "reference",
+          "arity": "multiple",
+          "required": false
+        }
+      ],
+      "accepts_image": "multiple",
+      "image_param": "reference_image_urls",
+      "required": [
+        "prompt"
+      ],
+      "params": {
+        "seed": {
+          "name": "seed",
+          "type": "integer",
+          "title": "Seed",
+          "description": "Random seed. A random seed is selected when omitted."
         },
-        "reference_audio_urls": {
-          "name": "reference_audio_urls",
-          "type": "array",
-          "title": "Reference Audio URLs",
-          "description": "URLs of reference audio clips (2-15 seconds each, combined duration at most 15 seconds), referenced in the prompt as Audio 1, Audio 2, and so on. Audio cannot be the only reference input; provide at least one reference image or video with it. Reference images, videos, and audio clips must add up to at most 12 files.",
-          "max_items": 3,
-          "items": {
-            "type": "string"
-          }
+        "enable_safety_checker": {
+          "name": "enable_safety_checker",
+          "type": "boolean",
+          "title": "Enable Safety Checker",
+          "description": "If set to true, the safety checker will be enabled.",
+          "default": true
         },
         "reference_video_urls": {
           "name": "reference_video_urls",
@@ -3465,19 +3574,15 @@
             "type": "string"
           }
         },
-        "enable_safety_checker": {
-          "name": "enable_safety_checker",
-          "type": "boolean",
-          "title": "Enable Safety Checker",
-          "description": "If set to true, the safety checker will be enabled.",
-          "default": true
-        },
-        "enable_prompt_expansion": {
-          "name": "enable_prompt_expansion",
-          "type": "boolean",
-          "title": "Enable Prompt Expansion",
-          "description": "Whether to expand the prompt with a vision language model before generation.",
-          "default": true
+        "reference_audio_urls": {
+          "name": "reference_audio_urls",
+          "type": "array",
+          "title": "Reference Audio URLs",
+          "description": "URLs of reference audio clips (2-15 seconds each, combined duration at most 15 seconds), referenced in the prompt as Audio 1, Audio 2, and so on. Audio cannot be the only reference input; provide at least one reference image or video with it. Reference images, videos, and audio clips must add up to at most 12 files.",
+          "max_items": 3,
+          "items": {
+            "type": "string"
+          }
         },
         "aspect_ratio": {
           "name": "aspect_ratio",
@@ -3495,18 +3600,6 @@
           ],
           "default": "adaptive"
         },
-        "resolution": {
-          "name": "resolution",
-          "type": "string",
-          "title": "Resolution",
-          "description": "The resolution of the generated video.",
-          "enum": [
-            "768P",
-            "2K",
-            "4K"
-          ],
-          "default": "2K"
-        },
         "duration": {
           "name": "duration",
           "type": "integer",
@@ -3515,6 +3608,41 @@
           "default": 5,
           "min": 5,
           "max": 15
+        },
+        "resolution": {
+          "name": "resolution",
+          "type": "string",
+          "title": "Resolution",
+          "description": "The resolution of the generated video. 480P and 768P are native generation modes; 2K and 4K upscale a 768P base result.",
+          "enum": [
+            "480P",
+            "768P",
+            "2K",
+            "4K"
+          ],
+          "default": "2K"
+        },
+        "reference_image_urls": {
+          "name": "reference_image_urls",
+          "type": "array",
+          "title": "Reference Image URLs",
+          "description": "URLs of subject/style reference images, referenced in the prompt as Image 1, Image 2, and so on. Reference images, videos, and audio clips must add up to at most 12 files.",
+          "max_items": 9,
+          "items": {
+            "type": "string"
+          },
+          "examples": [
+            [
+              "https://storage.googleapis.com/falserverless/example_inputs/hailuo23/pro_i2v_in.jpg"
+            ]
+          ]
+        },
+        "enable_prompt_expansion": {
+          "name": "enable_prompt_expansion",
+          "type": "boolean",
+          "title": "Enable Prompt Expansion",
+          "description": "Whether to expand the prompt with a vision language model before generation.",
+          "default": true
         }
       }
     },
@@ -3524,6 +3652,9 @@
       "lane": "r2v",
       "label": "Wan 2.7 reference",
       "vendor": "Alibaba",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:53.338Z",
       "category": "image-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0a940488/7aXOy6uHTo2EHtaZX89Uj_f2a95842752d4ef999d2b00006960480.jpg",
       "image_input": {
@@ -3536,19 +3667,6 @@
       ],
       "media_inputs": [
         {
-          "name": "reference_image_urls",
-          "type": "array",
-          "title": "Reference Image Urls",
-          "description": "Reference image URLs for character/object appearance. Pass multiple images for multi-subject generation. Max 20 MB each.",
-          "items": {
-            "type": "string"
-          },
-          "modality": "image",
-          "role": "reference",
-          "arity": "multiple",
-          "required": false
-        },
-        {
           "name": "reference_video_urls",
           "type": "array",
           "title": "Reference Video Urls",
@@ -3560,6 +3678,19 @@
           "role": "reference",
           "arity": "multiple",
           "required": false
+        },
+        {
+          "name": "reference_image_urls",
+          "type": "array",
+          "title": "Reference Image Urls",
+          "description": "Reference image URLs for character/object appearance. Pass multiple images for multi-subject generation. Max 20 MB each.",
+          "items": {
+            "type": "string"
+          },
+          "modality": "image",
+          "role": "reference",
+          "arity": "multiple",
+          "required": false
         }
       ],
       "accepts_image": "multiple",
@@ -3568,49 +3699,16 @@
         "prompt"
       ],
       "params": {
-        "enable_safety_checker": {
-          "name": "enable_safety_checker",
-          "type": "boolean",
-          "title": "Enable Safety Checker",
-          "description": "Enable content moderation for input and output. Disabling it requires account authorization; unauthorized requests are always checked.",
-          "default": true
-        },
-        "duration": {
-          "name": "duration",
-          "type": "integer",
-          "title": "Duration",
-          "description": "Output video duration in seconds (2-10).",
-          "enum": [
-            2,
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9,
-            10
-          ],
-          "default": 5,
-          "examples": [
-            5,
-            10
-          ]
-        },
-        "reference_image_urls": {
-          "name": "reference_image_urls",
-          "type": "array",
-          "title": "Reference Image Urls",
-          "description": "Reference image URLs for character/object appearance. Pass multiple images for multi-subject generation. Max 20 MB each.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "negative_prompt": {
-          "name": "negative_prompt",
+        "resolution": {
+          "name": "resolution",
           "type": "string",
-          "title": "Negative Prompt",
-          "description": "Content to avoid in the video. Max 500 characters."
+          "title": "Resolution",
+          "description": "Output video resolution tier.",
+          "enum": [
+            "720p",
+            "1080p"
+          ],
+          "default": "1080p"
         },
         "aspect_ratio": {
           "name": "aspect_ratio",
@@ -3635,22 +3733,55 @@
             "type": "string"
           }
         },
+        "duration": {
+          "name": "duration",
+          "type": "integer",
+          "title": "Duration",
+          "description": "Output video duration in seconds (2-10).",
+          "enum": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "default": 5,
+          "examples": [
+            5,
+            10
+          ]
+        },
         "seed": {
           "name": "seed",
           "type": "integer",
           "title": "Seed",
           "description": "Random seed for reproducibility (0-2147483647)."
         },
-        "resolution": {
-          "name": "resolution",
+        "negative_prompt": {
+          "name": "negative_prompt",
           "type": "string",
-          "title": "Resolution",
-          "description": "Output video resolution tier.",
-          "enum": [
-            "720p",
-            "1080p"
-          ],
-          "default": "1080p"
+          "title": "Negative Prompt",
+          "description": "Content to avoid in the video. Max 500 characters."
+        },
+        "enable_safety_checker": {
+          "name": "enable_safety_checker",
+          "type": "boolean",
+          "title": "Enable Safety Checker",
+          "description": "Enable content moderation for input and output. Disabling it requires account authorization; unauthorized requests are always checked.",
+          "default": true
+        },
+        "reference_image_urls": {
+          "name": "reference_image_urls",
+          "type": "array",
+          "title": "Reference Image Urls",
+          "description": "Reference image URLs for character/object appearance. Pass multiple images for multi-subject generation. Max 20 MB each.",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -3660,6 +3791,9 @@
       "lane": "r2v",
       "label": "Grok reference",
       "vendor": "xAI",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:53.611Z",
       "category": "image-to-video",
       "thumbnail": "https://v3b.fal.media/files/b/0a937ab6/vW4pJVZGWgLX9tSTMZPiz_314f49c562014442a5a64eed32ab69ae.jpg",
       "image_input": {
@@ -3699,16 +3833,21 @@
         "reference_image_urls"
       ],
       "params": {
-        "resolution": {
-          "name": "resolution",
+        "aspect_ratio": {
+          "name": "aspect_ratio",
           "type": "string",
-          "title": "Resolution",
-          "description": "Resolution of the output video.",
+          "title": "Aspect Ratio",
+          "description": "Aspect ratio of the generated video.",
           "enum": [
-            "480p",
-            "720p"
+            "16:9",
+            "4:3",
+            "3:2",
+            "1:1",
+            "2:3",
+            "3:4",
+            "9:16"
           ],
-          "default": "480p"
+          "default": "16:9"
         },
         "reference_image_urls": {
           "name": "reference_image_urls",
@@ -3726,6 +3865,17 @@
             ]
           ]
         },
+        "resolution": {
+          "name": "resolution",
+          "type": "string",
+          "title": "Resolution",
+          "description": "Resolution of the output video.",
+          "enum": [
+            "480p",
+            "720p"
+          ],
+          "default": "480p"
+        },
         "duration": {
           "name": "duration",
           "type": "integer",
@@ -3734,22 +3884,6 @@
           "default": 8,
           "min": 1,
           "max": 10
-        },
-        "aspect_ratio": {
-          "name": "aspect_ratio",
-          "type": "string",
-          "title": "Aspect Ratio",
-          "description": "Aspect ratio of the generated video.",
-          "enum": [
-            "16:9",
-            "4:3",
-            "3:2",
-            "1:1",
-            "2:3",
-            "3:4",
-            "9:16"
-          ],
-          "default": "16:9"
         }
       }
     }
