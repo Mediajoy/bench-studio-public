@@ -243,6 +243,7 @@ export default function App() {
   const [refs, setRefs] = useState([]);
   const refsRef = useRef([]);
   const [quote, setQuote] = useState(null);
+  const [provider, setProvider] = useState("fal");
   const [job, setJob] = useState(null);
   const [shots, setShots] = useState([]);
   const [ledger, setLedger] = useState({ rows: [], summary: null });
@@ -401,6 +402,22 @@ export default function App() {
     }
   }
 
+  async function toggleStar(shot) {
+    if (!shot?.archive_id) return;
+    const next = !shot.starred;
+    setShots((current) => current.map((s) => (s.archive_id === shot.archive_id ? { ...s, starred: next } : s)));
+    try {
+      await readJson(`/api/results/${encodeURIComponent(shot.archive_id)}/star`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ starred: next }),
+      });
+    } catch (starError) {
+      setShots((current) => current.map((s) => (s.archive_id === shot.archive_id ? { ...s, starred: !next } : s)));
+      setError(`Could not update star: ${starError.message ?? starError}`);
+    }
+  }
+
   useEffect(() => {
     if (!model) return;
     const next = {};
@@ -432,7 +449,11 @@ export default function App() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ modelId, params }),
     })
-      .then((q) => { if (!dead) setQuote(q); })
+      .then((q) => {
+        if (dead) return;
+        setQuote(q);
+        if (!q.kie) setProvider("fal"); // stay on fal if this model has no Kie mapping
+      })
       .catch(() => {});
     return () => { dead = true; };
   }, [modelId, params]);
@@ -453,18 +474,38 @@ export default function App() {
     finally { setBusy(false); }
   }
 
+  // Multiple files/picks can land in one burst (a multi-file chooser event,
+  // or several starred picks confirmed together). React has not necessarily
+  // rendered the previous attachment before the next resolves, so read and
+  // update the synchronous ref as the source of truth for the whole burst,
+  // then flush to state once at the end.
+  function applyAttachedAsset(targetModel, nextAsset) {
+    const assignment = assignInputFields(targetModel, [...refsRef.current, nextAsset]);
+    if (!assignment.ok) throw new Error(assignment.reason);
+    refsRef.current = assignment.assets;
+    if (targetModel?.id !== model?.id) {
+      setModelId(targetModel.id);
+      setRewritten(null);
+    }
+  }
+
+  function targetModelFor(mediaType) {
+    let targetModel = model;
+    if (!mediaInputsFor(targetModel, mediaType).length && mediaType === "image" && referenceModel) {
+      targetModel = referenceModel;
+    }
+    if (!mediaInputsFor(targetModel, mediaType).length) {
+      throw new Error(`${model?.label ?? "This model"} does not accept ${mediaType} input. Choose a compatible model first.`);
+    }
+    return targetModel;
+  }
+
   async function attach(file) {
     setBusy(true); setError(null);
     try {
       const mediaType = mediaTypeForFile(file);
       if (mediaType === "file") throw new Error("Use an image, video, audio file, or PDF.");
-      let targetModel = model;
-      if (!mediaInputsFor(targetModel, mediaType).length && mediaType === "image" && referenceModel) {
-        targetModel = referenceModel;
-      }
-      if (!mediaInputsFor(targetModel, mediaType).length) {
-        throw new Error(`${model?.label ?? "This model"} does not accept ${mediaType} input. Choose a compatible model first.`);
-      }
+      const targetModel = targetModelFor(mediaType);
       const fd = new FormData();
       fd.append("file", file);
       const j = await readJson("/api/upload", { method: "POST", body: fd });
@@ -476,20 +517,48 @@ export default function App() {
         media_type: j.media_type ?? mediaType,
         preview: URL.createObjectURL(file),
       };
-      // Multiple files are uploaded sequentially from one chooser event. React
-      // has not necessarily rendered the previous attachment before the next
-      // upload resolves, so read and update the synchronous ref as the source
-      // of truth for this burst.
-      const assignment = assignInputFields(targetModel, [...refsRef.current, nextAsset]);
-      if (!assignment.ok) throw new Error(assignment.reason);
-      refsRef.current = assignment.assets;
-      setRefs(assignment.assets);
-      if (targetModel?.id !== model?.id) {
-        setModelId(targetModel.id);
-        setRewritten(null);
-      }
+      applyAttachedAsset(targetModel, nextAsset);
+      setRefs(refsRef.current);
     } catch (e) {
       const message = `Upload failed: ${e.message ?? e}`;
+      if (/exhausted balance|user is locked/i.test(message)) setFalLocked(true);
+      setError(message);
+    }
+    finally { setBusy(false); }
+  }
+
+  // Reuse one or more starred archive results as fresh references, without
+  // a download/Finder round-trip. Each pick goes through /api/reuse-output,
+  // which re-hosts the local mirror on fal so the reference stays fetchable
+  // even if the original remote_url (a Kie tempfile, say) has expired.
+  async function attachFromArchive(outputs) {
+    if (!outputs?.length) return;
+    setBusy(true); setError(null);
+    try {
+      const targetModel = targetModelFor("image");
+      for (const output of outputs) {
+        const j = await readJson("/api/reuse-output", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            local_path: output.local_path,
+            content_type: output.content_type,
+            name: output.name ?? undefined,
+          }),
+        });
+        if (j.error) throw new Error(j.error);
+        const nextAsset = {
+          ...j,
+          url: j.remote_url ?? j.url,
+          name: j.name,
+          media_type: j.media_type ?? "image",
+          preview: output.local_url ?? j.local_url,
+        };
+        applyAttachedAsset(targetModel, nextAsset);
+      }
+      setRefs(refsRef.current);
+    } catch (e) {
+      const message = `Could not attach starred result: ${e.message ?? e}`;
       if (/exhausted balance|user is locked/i.test(message)) setFalLocked(true);
       setError(message);
     }
@@ -510,11 +579,15 @@ export default function App() {
     abortRef.current = ctrl;
 
     try {
-      const res = await fetch("/api/generate", {
+      const useKie = provider === "kie" && quote?.kie;
+      const res = await fetch(useKie ? "/api/generate-kie" : "/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: ctrl.signal,
-        body: JSON.stringify({
+        body: JSON.stringify(useKie ? {
+          modelId, prompt, params, rawIdea: idea,
+          referenceUrls: refs.map((r) => r.url),
+        } : {
           modelId, prompt, params, format, rawIdea: idea,
           shotSettings,
           inputAssets: refs.map(({ url, field, media_type, upload_id, name }) => ({ url, field, media_type, upload_id, name })),
@@ -627,6 +700,7 @@ export default function App() {
                     hide={HIDE}
                     refs={refs}
                     onAttach={attach}
+                    onAttachFromArchive={attachFromArchive}
                     onRemoveRef={(i) => setRefs((current) => {
                       const next = current.filter((_, j) => j !== i);
                       refsRef.current = next;
@@ -641,6 +715,8 @@ export default function App() {
                     shotSettings={shotSettings}
                     setShotSettings={(next) => { setShotSettings(next); setRewritten(null); }}
                     quote={quote}
+                    provider={provider}
+                    setProvider={setProvider}
                     busy={busy}
                     running={Boolean(job)}
                   />
@@ -652,7 +728,7 @@ export default function App() {
                 )}
                 {(job || shots.length > 0) && (
                   <section className="create-results" id="create-results" aria-label="Generated media">
-                    <Work job={job} shots={shots} onDelete={deleteResult} />
+                    <Work job={job} shots={shots} onDelete={deleteResult} onToggleStar={toggleStar} />
                   </section>
                 )}
               </section>}
@@ -668,7 +744,7 @@ export default function App() {
                     <a className="view-action" href="#create">Create another</a>
                   </div>
                   {error && <ErrorNotice error={error} onClose={() => setError(null)} />}
-                  <Work job={job} shots={shots} standalone onDelete={deleteResult} />
+                  <Work job={job} shots={shots} standalone onDelete={deleteResult} onToggleStar={toggleStar} />
                 </section>
               )}
 

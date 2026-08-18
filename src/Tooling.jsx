@@ -4,9 +4,11 @@ export default function Tooling() {
   const [config, setConfig] = useState(null);
   const [copied, setCopied] = useState(false);
   const [client, setClient] = useState("claude");
+  const [kiePricing, setKiePricing] = useState(null);
 
   useEffect(() => {
     fetch("/api/tooling").then((response) => response.json()).then(setConfig).catch(() => {});
+    fetch("/api/kie-pricing").then((response) => response.json()).then((d) => setKiePricing(d.rows)).catch(() => {});
   }, []);
 
   const snippet = useMemo(() => {
@@ -107,6 +109,50 @@ export default function Tooling() {
             <article key={name}><code>{name}</code><p>{description}</p></article>
           ))}
         </div>
+      </section>
+
+      <section className="tool-list-section">
+        <div className="tool-list-head">
+          <div>
+            <h2>Kie price sources</h2>
+            <p>Kie has no live pricing API, so these numbers are hand-checked. Use the link to verify the current price before trusting a quote.</p>
+          </div>
+          <span>{kiePricing?.length ?? 0} models</span>
+        </div>
+        <table className="kie-pricing-table">
+          <thead>
+            <tr>
+              <th>Kie model</th>
+              <th>fal equivalents</th>
+              <th>Current basis</th>
+              <th>Last verified</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(kiePricing ?? []).map((row) => (
+              <tr key={row.kie_model}>
+                <td><code>{row.kie_model}</code></td>
+                <td>{row.fal_equivalents.length ? row.fal_equivalents.map((id) => <code key={id}>{id}</code>) : <span className="muted">none mapped</span>}</td>
+                <td>{row.basis}</td>
+                <td>
+                  {row.last_verified ? (
+                    <span title={row.verified_via}>{row.last_verified}</span>
+                  ) : (
+                    <span className="price-unverified-row">never verified</span>
+                  )}
+                </td>
+                <td>
+                  {row.source_url ? (
+                    <a href={row.source_url} target="_blank" rel="noreferrer">check price</a>
+                  ) : (
+                    <span className="muted">—</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </section>
     </section>
   );

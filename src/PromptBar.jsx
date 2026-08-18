@@ -530,15 +530,104 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
   );
 }
 
+// Pick one or more starred archive results to reuse as fresh references,
+// instead of downloading and re-uploading through Finder. Fetches on open
+// so it always reflects the latest starred set.
+function StarredPicker({ onClose, onPick }) {
+  const [rows, setRows] = useState(null);
+  const [error, setError] = useState(null);
+  const [selected, setSelected] = useState(() => new Set());
+
+  useEffect(() => {
+    let dead = false;
+    fetch("/api/results/starred")
+      .then((r) => r.json())
+      .then((d) => { if (!dead) setRows(d.rows ?? []); })
+      .catch(() => { if (!dead) setError("Could not load starred results."); });
+    return () => { dead = true; };
+  }, []);
+
+  function toggle(archiveId) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(archiveId)) next.delete(archiveId);
+      else next.add(archiveId);
+      return next;
+    });
+  }
+
+  function confirm() {
+    const chosen = (rows ?? [])
+      .filter((row) => selected.has(row.archive_id))
+      .flatMap((row) => row.outputs.slice(0, 1).map((output) => ({ ...output, name: row.label })));
+    if (chosen.length) onPick(chosen);
+  }
+
+  return createPortal((
+    <div className="starred-picker-backdrop" role="dialog" aria-label="Choose from starred results" onClick={onClose}>
+      <div className="starred-picker" onClick={(e) => e.stopPropagation()}>
+        <div className="starred-picker-head">
+          <strong>Starred results</strong>
+          <button type="button" className="dropzone-close" onClick={onClose} aria-label="Close">Close</button>
+        </div>
+        {error && <p className="starred-picker-empty">{error}</p>}
+        {!error && rows && !rows.length && (
+          <p className="starred-picker-empty">
+            Nothing starred yet. Star a result in your archive first, then it'll show up here.
+          </p>
+        )}
+        {!error && rows === null && <p className="starred-picker-empty">Loading…</p>}
+        {!error && rows && rows.length > 0 && (
+          <>
+            <div className="starred-picker-grid">
+              {rows.map((row) => {
+                const output = row.outputs[0];
+                if (!output) return null;
+                const src = output.local_url || output.url;
+                const isVideo = String(output.content_type ?? "").startsWith("video");
+                const on = selected.has(row.archive_id);
+                return (
+                  <button
+                    type="button"
+                    key={row.archive_id}
+                    className={`starred-picker-item${on ? " on" : ""}`}
+                    onClick={() => toggle(row.archive_id)}
+                    aria-pressed={on}
+                  >
+                    {isVideo ? (
+                      <video src={src} muted playsInline preload="metadata" />
+                    ) : (
+                      <img src={src} alt={row.label || "Starred result"} loading="lazy" />
+                    )}
+                    <span className="starred-picker-check" aria-hidden="true">{on ? "✓" : ""}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="starred-picker-foot">
+              <span>{selected.size} selected</span>
+              <button type="button" className="starred-picker-confirm" onClick={confirm} disabled={!selected.size}>
+                Attach {selected.size || ""}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  ), document.body);
+}
+
 export default function PromptBar({
   catalog, model, idea, setIdea, format, setFormat,
-  params, setParams, hide, refs, onAttach, onRemoveRef,
+  params, setParams, hide, refs, onAttach, onAttachFromArchive, onRemoveRef,
   rewritten, setRewritten, onOptimize, onGenerate,
   quote, busy, running, onPickModel, referenceModel, shotSettings, setShotSettings,
+  provider, setProvider,
 }) {
   const fileRef = useRef(null);
   const [openRewrite, setOpenRewrite] = useState(true);
   const [showDropzone, setShowDropzone] = useState(false);
+  const [showStarredPicker, setShowStarredPicker] = useState(false);
   const [dragging, setDragging] = useState(false);
 
   if (!catalog || !model) {
@@ -686,6 +775,18 @@ export default function PromptBar({
               +
             </button>
           )}
+          {onAttachFromArchive && (
+            <button
+              type="button"
+              className="attach attach-starred"
+              onClick={() => setShowStarredPicker(true)}
+              disabled={busy || !canAttachMedia}
+              aria-label="Attach a starred result as a reference"
+              title="Pick from your starred results instead of uploading a file"
+            >
+              ★
+            </button>
+          )}
           <input
             ref={fileRef}
             type="file"
@@ -779,6 +880,16 @@ export default function PromptBar({
           </div>
         )}
 
+        {showStarredPicker && (
+          <StarredPicker
+            onClose={() => setShowStarredPicker(false)}
+            onPick={(outputs) => {
+              onAttachFromArchive?.(outputs);
+              setShowStarredPicker(false);
+            }}
+          />
+        )}
+
         <div className="bar-chips">
           <ModelPicker
             model={model}
@@ -799,10 +910,49 @@ export default function PromptBar({
             </span>
           ))}
 
+          {quote?.kie ? (
+            <div className="provider-toggle" role="radiogroup" aria-label="Generation provider">
+              <button
+                type="button"
+                className={`provider-opt${provider === "fal" ? " on" : ""}`}
+                onClick={() => setProvider("fal")}
+                disabled={busy}
+              >
+                fal ${quote.cost?.toFixed(3) ?? "?"}
+              </button>
+              <button
+                type="button"
+                className={`provider-opt${provider === "kie" ? " on" : ""}`}
+                onClick={() => setProvider("kie")}
+                disabled={busy}
+                title={`${quote.kie.basis}\n${
+                  quote.kie.last_verified
+                    ? `Price last verified ${quote.kie.last_verified} (${quote.kie.verified_via})`
+                    : "Price provenance unknown — never confirmed against a live source"
+                }`}
+              >
+                Kie ${quote.kie.cost.toFixed(3)}
+                {!quote.kie.last_verified ? <sup className="price-unverified">?</sup> : null}
+              </button>
+              {quote.kie.source_url ? (
+                <a
+                  className="price-source-link"
+                  href={quote.kie.source_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Check the current Kie price for this model"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  check price
+                </a>
+              ) : null}
+            </div>
+          ) : null}
+
           {quote?.cost != null ? (
             <span className="bar-price exact" title={quote.basis}>
-              <span>Estimated total</span>
-              <b>${quote.cost.toFixed(3)}</b>
+              <span>Estimated total{quote.kie ? ` (${provider === "kie" ? "Kie" : "fal"})` : ""}</span>
+              <b>${(provider === "kie" && quote.kie ? quote.kie.cost : quote.cost).toFixed(3)}</b>
             </span>
           ) : quote?.confidence === "unquotable" ? (
             <span className="bar-price metered" title={quote.basis}>

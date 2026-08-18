@@ -30,7 +30,8 @@ export function createStore({ dbPath, legacyLedgerPath }) {
       format TEXT,
       cost REAL,
       cost_confidence TEXT,
-      payload_json TEXT NOT NULL
+      payload_json TEXT NOT NULL,
+      starred INTEGER NOT NULL DEFAULT 0
     );
     CREATE INDEX IF NOT EXISTS generations_ts_idx ON generations(ts DESC);
     CREATE INDEX IF NOT EXISTS generations_model_idx ON generations(model_id, ts DESC);
@@ -110,6 +111,18 @@ export function createStore({ dbPath, legacyLedgerPath }) {
     );
     CREATE INDEX IF NOT EXISTS projects_created_idx ON projects(created_at DESC);
   `);
+
+  // CREATE TABLE IF NOT EXISTS above doesn't retrofit new columns onto a
+  // database that already exists on disk — starred was added after the
+  // generations table was first created, so backfill it here. The index is
+  // created unconditionally afterward (IF NOT EXISTS) since brand-new
+  // databases get the column via CREATE TABLE directly and skip this guard.
+  const hasStarredColumn = db.prepare("PRAGMA table_info(generations)").all()
+    .some((col) => col.name === "starred");
+  if (!hasStarredColumn) {
+    db.exec("ALTER TABLE generations ADD COLUMN starred INTEGER NOT NULL DEFAULT 0");
+  }
+  db.exec("CREATE INDEX IF NOT EXISTS generations_starred_idx ON generations(starred, ts DESC)");
 
   const insertGeneration = db.prepare(`
     INSERT INTO generations (
@@ -203,26 +216,43 @@ export function createStore({ dbPath, legacyLedgerPath }) {
     return count;
   }
 
+  const assetQuery = db.prepare("SELECT * FROM assets WHERE generation_id = ? AND role = 'output' ORDER BY position");
+
+  function generationRow(record) {
+    const payload = parseJson(record.payload_json, {});
+    const assets = assetQuery.all(record.id);
+    return {
+      ...payload,
+      archive_id: Number(record.id),
+      starred: Boolean(record.starred),
+      outputs: assets.map((asset) => ({
+        url: asset.remote_url,
+        remote_url: asset.remote_url,
+        local_url: asset.local_url,
+        local_path: asset.local_path,
+        content_type: asset.content_type,
+        width: asset.width,
+        height: asset.height,
+      })),
+    };
+  }
+
   function listGenerations(limit = 200) {
     const rows = db.prepare("SELECT * FROM generations ORDER BY ts DESC LIMIT ?").all(limit);
-    const assetQuery = db.prepare("SELECT * FROM assets WHERE generation_id = ? AND role = 'output' ORDER BY position");
-    return rows.map((record) => {
-      const payload = parseJson(record.payload_json, {});
-      const assets = assetQuery.all(record.id);
-      return {
-        ...payload,
-        archive_id: Number(record.id),
-        outputs: assets.map((asset) => ({
-          url: asset.remote_url,
-          remote_url: asset.remote_url,
-          local_url: asset.local_url,
-          local_path: asset.local_path,
-          content_type: asset.content_type,
-          width: asset.width,
-          height: asset.height,
-        })),
-      };
-    });
+    return rows.map(generationRow);
+  }
+
+  function listStarred(limit = 100) {
+    const rows = db.prepare("SELECT * FROM generations WHERE starred = 1 ORDER BY ts DESC LIMIT ?").all(limit);
+    return rows.map(generationRow);
+  }
+
+  function setStarred(id, starred) {
+    const numericId = Number(id);
+    if (!Number.isInteger(numericId) || numericId < 1) return null;
+    db.prepare("UPDATE generations SET starred = ? WHERE id = ?").run(starred ? 1 : 0, numericId);
+    const record = db.prepare("SELECT * FROM generations WHERE id = ?").get(numericId);
+    return record ? generationRow(record) : null;
   }
 
   function deleteGeneration(id) {
@@ -407,6 +437,8 @@ export function createStore({ dbPath, legacyLedgerPath }) {
     db,
     addGeneration,
     listGenerations,
+    listStarred,
+    setStarred,
     deleteGeneration,
     spendSummary,
     recordUpload,

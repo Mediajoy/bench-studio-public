@@ -54,7 +54,8 @@ function loadEnv() {
 loadEnv();
 
 const FAL_KEY = process.env.FAL_KEY;
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const KIE_API_KEY = process.env.KIE_API_KEY;
 if (!FAL_KEY) {
   console.error("No FAL_KEY in ~/.env. Add one from fal.ai/dashboard/keys and restart.");
   process.exit(1);
@@ -391,6 +392,98 @@ function actualCost(modelId, billableUnits) {
   };
 }
 
+// Kie doesn't expose a live per-model pricing API (only a credit-balance
+// endpoint), so this is a researched static table — same numbers and source
+// as shot-builder's scripts/cost.py PRICE_TABLE["kie"]. Keep the two in sync
+// by hand; there's no live source to reconcile against, and nothing
+// refreshes this automatically. Every entry carries last_verified (the date
+// its number was last checked against a real source), verified_via (how —
+// "live task" means a real createTask/creditsConsumed confirmed it, "docs"
+// means copied from Kie's published pricing page and never actually
+// charged, "unknown" means it predates this field), and source_url — where
+// to go check the current number by hand. Kie's per-model pages follow
+// https://kie.ai/market/<vendor>/<slug> but we've only confirmed the exact
+// slug for models we've actually loaded (seedance below); for the rest,
+// source_url points at the searchable catalog root rather than a guessed
+// page URL that might 404.
+const KIE_CATALOG_URL = "https://kie.ai/market";
+const KIE_PRICING = {
+  "nano-banana-pro": { kind: "image", image: 0.035, last_verified: "2026-08-18", verified_via: "live task", source_url: KIE_CATALOG_URL },
+  "flux-2": { kind: "image", image: 0.055, last_verified: null, verified_via: "unknown", source_url: KIE_CATALOG_URL },
+  "4o-image": { kind: "image", image: 0.07, last_verified: null, verified_via: "unknown", source_url: KIE_CATALOG_URL },
+  "kling-2.6": { kind: "video", video_base: 0.10, video_per_second: 0.036, video_audio_uplift: 0.30, last_verified: null, verified_via: "unknown", source_url: KIE_CATALOG_URL },
+  "veo-3.1": { kind: "video", video_base: 0.20, video_per_second: 0.18, video_audio_uplift: 0.30, last_verified: null, verified_via: "unknown", source_url: KIE_CATALOG_URL },
+  runway: { kind: "video", video_per_second: 0.15, last_verified: null, verified_via: "unknown", source_url: KIE_CATALOG_URL },
+  "sora-2": { kind: "video", video_per_second: 0.25, last_verified: null, verified_via: "unknown", source_url: KIE_CATALOG_URL },
+  // Landed on Kie 2026-08-18. Confirmed with a real createTask at default
+  // settings (no duration/resolution specified): 504 credits = $2.52 (1
+  // credit = $0.005). Kie's own default duration for this model is unknown
+  // to us (not returned in the task response), so this is modeled as a flat
+  // per-generation price rather than a base+per-second formula — treat the
+  // quote as accurate only near default settings, not linearly scaled for
+  // long/short durations. This is a premium-tier model, not a budget one;
+  // do not assume it's cheap because Nano Banana and Kling are.
+  "bytedance/seedance-2-5": { kind: "video", video_base: 2.52, video_per_second: 0, last_verified: "2026-08-18", verified_via: "live task", source_url: "https://kie.ai/market/bytedance/seedance-2-5" },
+};
+
+// Only map fal endpoints to a Kie model where the two are genuinely
+// comparable tiers of the same underlying capability, not just "also an
+// image model." Kie's catalog uses its own model names, not fal's IDs.
+// NOTE: both catalogs move fast (new endpoint versions land often) — if a
+// mapped fal ID stops appearing in /api/models, re-check against the live
+// list rather than trusting this table blindly.
+const KIE_EQUIVALENTS = {
+  // "nano-banana-basic" is in Kie's docs but their live createTask API
+  // rejects it (422 "model name not supported", confirmed 2026-08-18) — only
+  // nano-banana-pro is actually live, so nano-banana-2 maps to that instead.
+  "fal-ai/nano-banana-2": "nano-banana-pro",
+  "fal-ai/nano-banana-2/edit": "nano-banana-pro",
+  "fal-ai/nano-banana-pro": "nano-banana-pro",
+  "fal-ai/nano-banana-pro/edit": "nano-banana-pro",
+  "fal-ai/kling-video/v3/pro/text-to-video": "kling-2.6",
+  "fal-ai/kling-video/v3/pro/image-to-video": "kling-2.6",
+  "fal-ai/kling-video/v3/turbo/standard/text-to-video": "kling-2.6",
+  "fal-ai/veo3.1": "veo-3.1",
+  "fal-ai/veo3.1/fast": "veo-3.1",
+  "fal-ai/veo3.1/fast/image-to-video": "veo-3.1",
+  "fal-ai/veo3.1/reference-to-video": "veo-3.1",
+  "bytedance/seedance-2.5/text-to-video": "bytedance/seedance-2-5",
+  "bytedance/seedance-2.5/image-to-video": "bytedance/seedance-2-5",
+};
+
+function estimateKieCost(modelId, params) {
+  const kieKey = KIE_EQUIVALENTS[modelId];
+  if (!kieKey) return null;
+  const spec = KIE_PRICING[kieKey];
+  if (!spec) return null;
+
+  if (spec.kind === "image") {
+    return {
+      cost: Number(spec.image.toFixed(4)),
+      model: kieKey,
+      basis: `flat @ $${spec.image}/image`,
+      last_verified: spec.last_verified,
+      verified_via: spec.verified_via,
+      source_url: spec.source_url,
+    };
+  }
+
+  const duration = durationSeconds(modelId, params);
+  const withAudio = params.generate_audio === true || params.generate_audio === "true";
+  const base = spec.video_base ?? 0;
+  const perSec = spec.video_per_second ?? 0;
+  const audioUplift = withAudio ? (spec.video_audio_uplift ?? 0) : 0;
+  const cost = base + perSec * duration + audioUplift;
+  return {
+    cost: Number(cost.toFixed(4)),
+    model: kieKey,
+    basis: `$${base} base + ${duration}s x $${perSec}${withAudio ? ` + $${audioUplift} audio` : ""} (researched, not live)`,
+    last_verified: spec.last_verified,
+    verified_via: spec.verified_via,
+    source_url: spec.source_url,
+  };
+}
+
 function durationSeconds(modelId, params) {
   const m = byId.get(modelId);
   const d = m?.params?.duration;
@@ -505,7 +598,7 @@ async function optimizePrompt({ idea, modelId, format, hasReference, refCount = 
   const profile = findProfile(modelId);
   const model = byId.get(modelId);
   if (!profile) return { prompt: idea, optimized: false, reason: "no profile for this model yet" };
-  if (!GOOGLE_API_KEY) return { prompt: idea, optimized: false, reason: "no GOOGLE_API_KEY for the rewriter" };
+  if (!ANTHROPIC_API_KEY) return { prompt: idea, optimized: false, reason: "no ANTHROPIC_API_KEY for the rewriter" };
 
   const formatBrief = format === "ugc"
     ? ugcBrief({ model, modelId, hasReference, refCount })
@@ -550,29 +643,28 @@ ${refRules ? `\n${refCount === 1 ? "EXACTLY ONE reference image is attached. Nev
 Return ONLY the rewritten prompt. No preamble, no quotes, no explanation, no markdown.`;
 
   const body = {
-    contents: [{ role: "user", parts: [{ text: `Idea: ${idea}` }] }],
-    systemInstruction: { parts: [{ text: sys }] },
-    generationConfig: {
-      temperature: 0.7,
-      // Thinking tokens are drawn from this same budget, so a tight cap here
-      // truncates the answer mid-sentence. Give it room and turn thinking off,
-      // since this is a rewrite task with the rules already supplied.
-      maxOutputTokens: 2048,
-      thinkingConfig: { thinkingBudget: 0 },
-    },
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 2048,
+    temperature: 0.7,
+    system: sys,
+    messages: [{ role: "user", content: `Idea: ${idea}` }],
   };
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${GOOGLE_API_KEY}`;
+  const url = "https://api.anthropic.com/v1/messages";
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
     body: JSON.stringify(body),
   });
   if (!res.ok) {
     return { prompt: idea, optimized: false, reason: `rewriter HTTP ${res.status}` };
   }
   const j = await res.json();
-  const text = j.candidates?.[0]?.content?.parts?.map((p) => p.text).join("").trim();
+  const text = j.content?.map((p) => p.text).join("").trim();
   if (!text) return { prompt: idea, optimized: false, reason: "rewriter returned nothing" };
   return { prompt: text, optimized: true, profile_used: profile.family ?? modelId };
 }
@@ -731,6 +823,108 @@ async function falPoll(modelId, requestId, { onUpdate } = {}) {
   throw new Error("timed out after 12 minutes");
 }
 
+// ---------------------------------------------------------------- kie
+//
+// Kie is task-based: createTask -> poll recordInfo -> pull the URL out of a
+// JSON-encoded resultJson string. Same protocol shot-builder's kie_gen.py
+// already talks to; mirrored here so Bench Studio can submit directly
+// instead of routing through that script. Only the models in KIE_EQUIVALENTS
+// are reachable from the UI, so the payload shapes below only need to cover
+// those handful of models, not all of Kie's catalog.
+
+const KIE_BASE = "https://api.kie.ai";
+
+async function kieCreateTask(model, input) {
+  const res = await fetch(`${KIE_BASE}/api/v1/jobs/createTask`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${KIE_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model, input }),
+  });
+  const body = await res.json().catch(() => ({}));
+  const taskId = body?.data?.taskId;
+  if (!taskId) throw new Error(`Kie createTask failed (code=${body?.code}): ${body?.msg ?? body?.message ?? "no error message"}`);
+  return taskId;
+}
+
+async function kiePollTask(taskId, { onUpdate, intervalMs = 4000, timeoutMs = 8 * 60 * 1000 } = {}) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const res = await fetch(`${KIE_BASE}/api/v1/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`, {
+      headers: { Authorization: `Bearer ${KIE_API_KEY}` },
+    });
+    const body = await res.json().catch(() => ({}));
+    const data = body?.data ?? {};
+    const state = String(data.state ?? data.status ?? "").toLowerCase();
+    onUpdate?.(state);
+    if (state === "success" || state === "completed") return data;
+    if (state === "fail" || state === "failed") throw new Error(`Kie task failed: ${data.failMsg ?? data.error ?? "unknown error"}`);
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  throw new Error("Kie task timed out");
+}
+
+function kieExtractUrl(data) {
+  const raw = data?.resultJson;
+  if (typeof raw === "string" && raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      const urls = parsed.resultUrls ?? parsed.urls;
+      if (Array.isArray(urls) && urls[0]) return urls[0];
+    } catch { /* fall through to legacy shape */ }
+  }
+  const result = data?.result ?? {};
+  for (const key of ["url", "imageUrl", "videoUrl", "audioUrl", "outputUrl"]) {
+    if (result[key]) return result[key];
+  }
+  if (Array.isArray(result.files) && result.files[0]?.url) return result.files[0].url;
+  throw new Error(`No artifact URL in Kie response: ${JSON.stringify(data).slice(0, 300)}`);
+}
+
+// Builds Kie's {model, input} payload for the handful of models mapped in
+// KIE_EQUIVALENTS. Kie's schema is per-model and does not match fal's param
+// names 1:1 (aspectRatio vs aspect_ratio, string vs number duration, etc.) —
+// this only needs to cover the mapped models, not fal's whole catalog.
+function buildKiePayload(kieKey, { prompt, params = {}, referenceUrl = null }) {
+  const spec = KIE_PRICING[kieKey];
+  if (!spec) throw new Error(`no Kie pricing/shape entry for ${kieKey}`);
+
+  if (spec.kind === "image") {
+    const input = { prompt };
+    if (params.aspect_ratio) input.aspectRatio = params.aspect_ratio;
+    if (referenceUrl) input.referenceImages = [referenceUrl];
+    return { model: kieKey, input };
+  }
+
+  // video
+  const duration = String(params.duration ?? 5);
+  const withAudio = params.generate_audio === true || params.generate_audio === "true";
+  if (kieKey.startsWith("kling")) {
+    const model = `${kieKey}/${referenceUrl ? "image-to-video" : "text-to-video"}`;
+    const input = { prompt, duration, aspect_ratio: params.aspect_ratio ?? "16:9", sound: withAudio };
+    if (referenceUrl) input.image_url = referenceUrl;
+    return { model, input };
+  }
+  if (kieKey === "bytedance/seedance-2-5") {
+    // Confirmed live shape 2026-08-18: snake_case fields, duration as int
+    // seconds, resolution as "720p"/"1080p", explicit reference_*_urls arrays
+    // (not a single image_url like fal's version of this model).
+    const input = {
+      prompt,
+      duration: Number(duration),
+      resolution: params.resolution ?? "720p",
+      aspect_ratio: params.aspect_ratio ?? "16:9",
+      generate_audio: withAudio,
+      return_last_frame: false,
+    };
+    if (referenceUrl) input.reference_image_urls = [referenceUrl];
+    return { model: kieKey, input };
+  }
+  const input = { prompt, duration: Number(duration), aspectRatio: params.aspect_ratio ?? "16:9" };
+  if (referenceUrl) input.imageUrl = referenceUrl;
+  if (withAudio) input.withAudio = true;
+  return { model: kieKey, input };
+}
+
 async function falUpload(buffer, filename, contentType) {
   // fal's storage: ask for a signed upload URL, PUT the bytes, get back a
   // public file_url you can hand to any model as image_url.
@@ -861,7 +1055,7 @@ app.get("/api/health", (_req, res) => {
     discovered_new_endpoints: CATALOG_SYNC?.new_endpoint_count ?? null,
     persistence: "sqlite",
     storage: store.storageSummary(),
-    rewriter: GOOGLE_API_KEY ? "gemini-3-flash-preview" : "disabled (no GOOGLE_API_KEY)",
+    rewriter: ANTHROPIC_API_KEY ? "claude-haiku-4-5" : "disabled (no ANTHROPIC_API_KEY)",
   });
 });
 
@@ -1069,7 +1263,28 @@ app.get("/api/fal/billing", async (req, res) => {
 app.post("/api/quote", (req, res) => {
   const { modelId, params = {} } = req.body ?? {};
   if (!byId.has(modelId)) return res.status(400).json({ error: `unknown model ${modelId}` });
-  res.json(estimateCost(modelId, params));
+  const fal = estimateCost(modelId, params);
+  const kie = estimateKieCost(modelId, params);
+  res.json(kie ? { ...fal, kie } : fal);
+});
+
+// Every Kie model this app knows how to price/generate against, with its
+// verification status and where to go check the current number by hand.
+// Static reference for the UI — not tied to whichever fal model is selected.
+app.get("/api/kie-pricing", (_req, res) => {
+  const rows = Object.entries(KIE_PRICING).map(([kieKey, spec]) => ({
+    kie_model: kieKey,
+    kind: spec.kind,
+    cost: spec.kind === "image" ? spec.image : null,
+    basis: spec.kind === "image"
+      ? `$${spec.image}/image`
+      : `$${spec.video_base ?? 0} base + $${spec.video_per_second ?? 0}/s${spec.video_audio_uplift ? ` + $${spec.video_audio_uplift} audio` : ""}`,
+    last_verified: spec.last_verified,
+    verified_via: spec.verified_via,
+    source_url: spec.source_url,
+    fal_equivalents: Object.entries(KIE_EQUIVALENTS).filter(([, v]) => v === kieKey).map(([k]) => k),
+  }));
+  res.json({ rows });
 });
 
 app.get("/api/ledger", (_req, res) => {
@@ -1122,6 +1337,17 @@ app.delete("/api/results/:id", (req, res) => {
   });
 });
 
+app.post("/api/results/:id/star", (req, res) => {
+  const starred = Boolean(req.body?.starred);
+  const updated = store.setStarred(req.params.id, starred);
+  if (!updated) return res.status(404).json({ error: "Result not found" });
+  res.json(updated);
+});
+
+app.get("/api/results/starred", (_req, res) => {
+  res.json({ rows: store.listStarred() });
+});
+
 app.post("/api/reload", (_req, res) => { reloadKnowledge(); res.json({ ok: true, profiles: Object.keys(PROFILES).length }); });
 
 app.post("/api/upload", upload.single("file"), async (req, res) => {
@@ -1143,6 +1369,45 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
     });
   } catch (e) {
     console.warn(`fal upload failed: ${String(e.message ?? e)}`);
+    res.status(502).json({ error: publicProviderError(e, "upload") });
+  }
+});
+
+// Reuse an archived output as a fresh reference input. fal needs a URL it
+// can fetch itself — a starred result's remote_url may be a Kie tempfile
+// URL that expires (~14 days per Kie's own retention policy), so instead of
+// trusting the old remote_url we re-read the locally mirrored bytes and push
+// them back through the same falUpload() path /api/upload uses for a brand
+// new Finder file, just sourcing the buffer from disk instead of a multer
+// upload. Same containment check as DELETE /api/results/:id.
+app.post("/api/reuse-output", async (req, res) => {
+  try {
+    const { local_path: localPath, content_type: contentType, name } = req.body ?? {};
+    if (!localPath) return res.status(400).json({ error: "local_path required" });
+    const resolved = resolve(localPath);
+    const outputRoot = `${resolve(OUTPUTS)}/`;
+    if (!resolved.startsWith(outputRoot)) return res.status(400).json({ error: "local_path is outside the outputs archive" });
+    if (!existsSync(resolved)) return res.status(404).json({ error: "That archived file no longer exists locally." });
+
+    const buffer = readFileSync(resolved);
+    const originalname = name || basename(resolved);
+    const mimetype = contentType || "application/octet-stream";
+    const local = localUploadCopy({ originalname, buffer, mimetype, size: buffer.length });
+    const url = await falUpload(buffer, originalname, mimetype);
+    const record = { ...local, remote_url: url };
+    store.recordUpload(record);
+    res.json({
+      url,
+      remote_url: url,
+      local_url: local.local_url,
+      upload_id: local.upload_id,
+      media_type: local.media_type,
+      content_type: local.content_type,
+      size_bytes: local.size_bytes,
+      name: local.original_name,
+    });
+  } catch (e) {
+    console.warn(`reuse-output failed: ${String(e.message ?? e)}`);
     res.status(502).json({ error: publicProviderError(e, "upload") });
   }
 });
@@ -1323,6 +1588,67 @@ function extractUrls(result) {
   walk(result);
   return urls;
 }
+
+// Kie generation. Only reachable for the handful of models mapped in
+// KIE_EQUIVALENTS — the UI only offers this toggle when the currently
+// selected fal model has a mapped Kie counterpart, so modelId here is
+// always a fal ID we translate, not a raw Kie model name.
+app.post("/api/generate-kie", async (req, res) => {
+  const { modelId, prompt, params = {}, referenceUrls = [], rawIdea = null } = req.body ?? {};
+  if (!KIE_API_KEY) return res.status(400).json({ error: "no KIE_API_KEY configured" });
+  const kieKey = KIE_EQUIVALENTS[modelId];
+  if (!kieKey) return res.status(400).json({ error: `${modelId} has no Kie equivalent` });
+  if (!prompt) return res.status(400).json({ error: "prompt required" });
+
+  res.setHeader("Content-Type", "application/x-ndjson");
+  res.setHeader("Cache-Control", "no-cache");
+  const send = (o) => res.write(JSON.stringify(o) + "\n");
+
+  try {
+    const pre = estimateKieCost(modelId, params);
+    send({ phase: "submitting", estimate: pre });
+    const { model, input } = buildKiePayload(kieKey, { prompt, params, referenceUrl: referenceUrls[0] ?? null });
+    const taskId = await kieCreateTask(model, input);
+    send({ phase: "queued", request_id: taskId });
+
+    const data = await kiePollTask(taskId, {
+      onUpdate: (state) => send({ phase: "status", status: state }),
+    });
+    const url = kieExtractUrl(data);
+    const outputs = await mirrorOutputs([{ url }], taskId);
+
+    const row = {
+      ts: new Date().toISOString(),
+      model: `kie/${model}`,
+      label: `${model} (Kie)`,
+      vendor: "kie",
+      kind: KIE_PRICING[kieKey].kind,
+      lane: "kie",
+      format: "none",
+      raw_idea: rawIdea,
+      prompt,
+      reference_count: referenceUrls.length,
+      reference_mode: referenceUrls.length ? "image_url" : null,
+      input_assets: referenceUrls.map((url) => ({ url })),
+      params: input,
+      request_id: taskId,
+      cost: pre?.cost ?? null,
+      cost_confidence: "estimated (kie, no verified billing)",
+      cost_basis: pre?.basis ?? null,
+      billable_units: null,
+      estimated_cost: pre?.cost ?? null,
+      outputs,
+    };
+    appendLedger(row);
+
+    send({ phase: "done", result: data, ledger: row, spend: spendSummary() });
+    res.end();
+  } catch (e) {
+    console.warn(`Kie generation failed: ${String(e.message ?? e)}`);
+    send({ phase: "error", error: String(e.message ?? e) });
+    res.end();
+  }
+});
 
 const PORT = process.env.PORT || 8787;
 

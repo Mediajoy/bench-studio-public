@@ -11,7 +11,7 @@ const FORMAT_LABELS = {
   poster: "Ad with headline",
 };
 
-export default function Work({ job, shots, standalone = false, onDelete }) {
+export default function Work({ job, shots, standalone = false, onDelete, onToggleStar }) {
   return (
     <div className={`wall results-wall${standalone ? " standalone" : ""}`}>
       <div className="wall-head">
@@ -31,7 +31,7 @@ export default function Work({ job, shots, standalone = false, onDelete }) {
         <div className="masonry">
           {job && <Job job={job} />}
           {shots.map((s) => (
-            <Shot key={`${s.archive_id ?? s.request_id}-${s.at}`} shot={s} onDelete={onDelete} />
+            <Shot key={`${s.archive_id ?? s.request_id}-${s.at}`} shot={s} onDelete={onDelete} onToggleStar={onToggleStar} />
           ))}
         </div>
       )}
@@ -55,10 +55,11 @@ function Job({ job }) {
   );
 }
 
-function Shot({ shot, onDelete }) {
+function Shot({ shot, onDelete, onToggleStar }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [starring, setStarring] = useState(false);
   const verified = shot.cost_confidence === "verified";
   const formatLabel = FORMAT_LABELS[shot.format];
   const idea = String(shot.raw_idea || shot.prompt || "").trim();
@@ -70,6 +71,15 @@ function Shot({ shot, onDelete }) {
       await onDelete?.(shot);
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function toggleStar() {
+    setStarring(true);
+    try {
+      await onToggleStar?.(shot);
+    } finally {
+      setStarring(false);
     }
   }
   return (
@@ -97,6 +107,19 @@ function Shot({ shot, onDelete }) {
             {formatLabel && <span className="work-format">{formatLabel}</span>}
           </div>
           <div className="work-actions">
+            {onToggleStar && shot.archive_id && (
+              <button
+                type="button"
+                className={`work-star${shot.starred ? " on" : ""}`}
+                onClick={toggleStar}
+                disabled={starring}
+                aria-pressed={Boolean(shot.starred)}
+                aria-label={shot.starred ? `Unstar ${resultLabel}` : `Star ${resultLabel}`}
+                title={shot.starred ? "Starred — click to unstar" : "Star this result so you can pick it as a reference later"}
+              >
+                {shot.starred ? "★" : "☆"}
+              </button>
+            )}
             <button type="button" onClick={() => setDetailsOpen((value) => !value)} aria-expanded={detailsOpen}>
               {detailsOpen ? "Hide details" : "Details"}
             </button>
