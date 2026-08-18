@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generated_at": "2026-08-12T19:02:00.482Z",
-  "schema_generated_at": "2026-08-12T18:57:37.821Z",
+  "generated_at": "2026-08-18T03:00:31.077Z",
+  "schema_generated_at": "2026-08-18T02:59:53.611Z",
   "source": "fal.ai public OpenAPI queue schemas",
   "status_legend": {
     "schema-supported": "Declared by fal's live OpenAPI schema; not necessarily exercised.",
@@ -17,6 +17,9 @@
       "vendor": "Black Forest Labs",
       "output": "image",
       "lane": "t2i",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:40.499Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -31,6 +34,9 @@
       "vendor": "Black Forest Labs",
       "output": "image",
       "lane": "t2i",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:40.752Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -45,6 +51,9 @@
       "vendor": "Google",
       "output": "image",
       "lane": "t2i",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:40.992Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -59,6 +68,9 @@
       "vendor": "Google",
       "output": "image",
       "lane": "t2i",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:41.256Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -73,6 +85,9 @@
       "vendor": "OpenAI",
       "output": "image",
       "lane": "t2i",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:41.524Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -87,6 +102,9 @@
       "vendor": "ByteDance",
       "output": "image",
       "lane": "t2i",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:41.972Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -101,6 +119,9 @@
       "vendor": "Alibaba",
       "output": "image",
       "lane": "t2i",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:42.412Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -115,6 +136,9 @@
       "vendor": "Recraft",
       "output": "image",
       "lane": "t2i",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:42.707Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -129,6 +153,9 @@
       "vendor": "xAI",
       "output": "image",
       "lane": "t2i",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:43.027Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -143,6 +170,9 @@
       "vendor": "Google",
       "output": "image",
       "lane": "i2i",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:43.845Z",
       "inputs": [
         {
           "field": "image_urls",
@@ -164,7 +194,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }
@@ -184,31 +214,10 @@
       "vendor": "Google",
       "output": "image",
       "lane": "i2i",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:44.085Z",
       "inputs": [
-        {
-          "field": "audio_url",
-          "modality": "audio",
-          "role": "source",
-          "arity": "single",
-          "required": false,
-          "description": "Optional audio file to use as input context. Accepts an http(s)/data URL (downloaded and sent inline, max 15MB).",
-          "accepted_type": "string",
-          "item_type": null,
-          "limits": {
-            "min_items": null,
-            "max_items": null,
-            "max_megabytes": 15,
-            "min_seconds": null,
-            "max_seconds": null
-          },
-          "provenance": [
-            {
-              "source": "fal-openapi",
-              "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
-            }
-          ]
-        },
         {
           "field": "image_urls",
           "modality": "image",
@@ -229,7 +238,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         },
@@ -253,7 +262,31 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
+            }
+          ]
+        },
+        {
+          "field": "audio_url",
+          "modality": "audio",
+          "role": "source",
+          "arity": "single",
+          "required": false,
+          "description": "Optional audio file to use as input context. Accepts an http(s)/data URL (downloaded and sent inline, max 15MB).",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": 15,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         },
@@ -277,15 +310,15 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }
       ],
       "modalities": [
-        "audio",
         "image",
         "video",
+        "audio",
         "document"
       ],
       "primary_image_field": "image_urls",
@@ -300,31 +333,10 @@
       "vendor": "OpenAI",
       "output": "image",
       "lane": "i2i",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:44.368Z",
       "inputs": [
-        {
-          "field": "mask_url",
-          "modality": "image",
-          "role": "mask",
-          "arity": "single",
-          "required": false,
-          "description": "The URL of the mask image to use for the generation. This indicates what part of the image to edit.",
-          "accepted_type": "string",
-          "item_type": null,
-          "limits": {
-            "min_items": null,
-            "max_items": null,
-            "max_megabytes": null,
-            "min_seconds": null,
-            "max_seconds": null
-          },
-          "provenance": [
-            {
-              "source": "fal-openapi",
-              "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
-            }
-          ]
-        },
         {
           "field": "image_urls",
           "modality": "image",
@@ -345,7 +357,31 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
+            }
+          ]
+        },
+        {
+          "field": "mask_url",
+          "modality": "image",
+          "role": "mask",
+          "arity": "single",
+          "required": false,
+          "description": "The URL of the mask image to use for the generation. This indicates what part of the image to edit.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }
@@ -365,6 +401,9 @@
       "vendor": "ByteDance",
       "output": "image",
       "lane": "i2i",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:45.181Z",
       "inputs": [
         {
           "field": "image_urls",
@@ -386,7 +425,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }
@@ -406,6 +445,9 @@
       "vendor": "Alibaba",
       "output": "image",
       "lane": "i2i",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:45.451Z",
       "inputs": [
         {
           "field": "image_urls",
@@ -427,7 +469,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }
@@ -447,6 +489,9 @@
       "vendor": "Black Forest Labs",
       "output": "image",
       "lane": "i2i",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:45.696Z",
       "inputs": [
         {
           "field": "image_urls",
@@ -468,7 +513,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }
@@ -488,6 +533,9 @@
       "vendor": "Lightricks",
       "output": "video",
       "lane": "t2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:45.960Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -502,6 +550,9 @@
       "vendor": "Kuaishou",
       "output": "video",
       "lane": "t2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:46.314Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -516,6 +567,9 @@
       "vendor": "Kuaishou",
       "output": "video",
       "lane": "t2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:47.095Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -530,6 +584,9 @@
       "vendor": "ByteDance",
       "output": "video",
       "lane": "t2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:47.357Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -544,6 +601,9 @@
       "vendor": "ByteDance",
       "output": "video",
       "lane": "t2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:47.736Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -558,6 +618,9 @@
       "vendor": "MiniMax",
       "output": "video",
       "lane": "t2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:48.058Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -572,6 +635,9 @@
       "vendor": "Alibaba",
       "output": "video",
       "lane": "t2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:48.506Z",
       "inputs": [
         {
           "field": "audio_url",
@@ -593,7 +659,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }
@@ -613,6 +679,9 @@
       "vendor": "Google",
       "output": "video",
       "lane": "t2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:48.800Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -627,6 +696,9 @@
       "vendor": "Google",
       "output": "video",
       "lane": "t2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:49.050Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -641,6 +713,9 @@
       "vendor": "Black Forest Labs",
       "output": "video",
       "lane": "t2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:49.300Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -655,6 +730,9 @@
       "vendor": "xAI",
       "output": "video",
       "lane": "t2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:49.559Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -669,6 +747,9 @@
       "vendor": "Lightricks",
       "output": "video",
       "lane": "i2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:49.830Z",
       "inputs": [
         {
           "field": "image_url",
@@ -690,7 +771,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         },
@@ -714,7 +795,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }
@@ -734,16 +815,19 @@
       "vendor": "Kuaishou",
       "output": "video",
       "lane": "i2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:50.110Z",
       "inputs": [
         {
-          "field": "elements",
-          "modality": "mixed",
-          "role": "source",
-          "arity": "multiple",
-          "required": false,
-          "description": "Elements (characters/objects) to include in the video. Each example can either be an image set (frontal + reference images) or a video. Reference in prompt as @Element1, @Element2, etc.",
-          "accepted_type": "array",
-          "item_type": "object",
+          "field": "start_image_url",
+          "modality": "image",
+          "role": "start-frame",
+          "arity": "single",
+          "required": true,
+          "description": "URL of the image to be used for the video",
+          "accepted_type": "string",
+          "item_type": null,
           "limits": {
             "min_items": null,
             "max_items": null,
@@ -755,7 +839,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         },
@@ -779,19 +863,19 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         },
         {
-          "field": "start_image_url",
-          "modality": "image",
-          "role": "start-frame",
-          "arity": "single",
-          "required": true,
-          "description": "URL of the image to be used for the video",
-          "accepted_type": "string",
-          "item_type": null,
+          "field": "elements",
+          "modality": "mixed",
+          "role": "source",
+          "arity": "multiple",
+          "required": false,
+          "description": "Elements (characters/objects) to include in the video. Each example can either be an image set (frontal + reference images) or a video. Reference in prompt as @Element1, @Element2, etc.",
+          "accepted_type": "array",
+          "item_type": "object",
           "limits": {
             "min_items": null,
             "max_items": null,
@@ -803,14 +887,14 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }
       ],
       "modalities": [
-        "mixed",
-        "image"
+        "image",
+        "mixed"
       ],
       "primary_image_field": "start_image_url",
       "image_arity": "single",
@@ -824,6 +908,9 @@
       "vendor": "ByteDance",
       "output": "video",
       "lane": "i2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:50.380Z",
       "inputs": [
         {
           "field": "image_url",
@@ -845,7 +932,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         },
@@ -869,7 +956,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }
@@ -889,6 +976,9 @@
       "vendor": "MiniMax",
       "output": "video",
       "lane": "i2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:51.147Z",
       "inputs": [
         {
           "field": "end_image_url",
@@ -910,7 +1000,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         },
@@ -934,7 +1024,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }
@@ -954,6 +1044,9 @@
       "vendor": "Alibaba",
       "output": "video",
       "lane": "i2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:51.581Z",
       "inputs": [
         {
           "field": "image_url",
@@ -975,7 +1068,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         },
@@ -999,7 +1092,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }
@@ -1020,6 +1113,9 @@
       "vendor": "Google",
       "output": "video",
       "lane": "i2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:51.824Z",
       "inputs": [
         {
           "field": "image_url",
@@ -1041,7 +1137,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }
@@ -1061,6 +1157,9 @@
       "vendor": "Google",
       "output": "video",
       "lane": "r2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:52.144Z",
       "inputs": [
         {
           "field": "image_urls",
@@ -1082,7 +1181,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }
@@ -1102,31 +1201,10 @@
       "vendor": "ByteDance",
       "output": "video",
       "lane": "r2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:52.565Z",
       "inputs": [
-        {
-          "field": "audio_urls",
-          "modality": "audio",
-          "role": "source",
-          "arity": "multiple",
-          "required": false,
-          "description": "Reference audio to guide video generation. Refer to them in the prompt as @Audio1, @Audio2, etc. Supported formats: MP3, WAV. Up to 3 files, combined duration must not exceed 15 seconds. Max 15 MB per file.If audio is provided, at least one reference image or video is required.",
-          "accepted_type": "array",
-          "item_type": "string",
-          "limits": {
-            "min_items": null,
-            "max_items": 3,
-            "max_megabytes": 15,
-            "min_seconds": null,
-            "max_seconds": null
-          },
-          "provenance": [
-            {
-              "source": "fal-openapi",
-              "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
-            }
-          ]
-        },
         {
           "field": "image_urls",
           "modality": "image",
@@ -1147,7 +1225,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         },
@@ -1171,15 +1249,39 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
+            }
+          ]
+        },
+        {
+          "field": "audio_urls",
+          "modality": "audio",
+          "role": "source",
+          "arity": "multiple",
+          "required": false,
+          "description": "Reference audio to guide video generation. Refer to them in the prompt as @Audio1, @Audio2, etc. Supported formats: MP3, WAV. Up to 3 files, combined duration must not exceed 15 seconds. Max 15 MB per file.If audio is provided, at least one reference image or video is required.",
+          "accepted_type": "array",
+          "item_type": "string",
+          "limits": {
+            "min_items": null,
+            "max_items": 3,
+            "max_megabytes": 15,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }
       ],
       "modalities": [
-        "audio",
         "image",
-        "video"
+        "video",
+        "audio"
       ],
       "primary_image_field": "image_urls",
       "image_arity": "multiple",
@@ -1193,28 +1295,31 @@
       "vendor": "MiniMax",
       "output": "video",
       "lane": "r2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:52.921Z",
       "inputs": [
         {
-          "field": "reference_image_urls",
-          "modality": "image",
+          "field": "reference_video_urls",
+          "modality": "video",
           "role": "reference",
           "arity": "multiple",
           "required": false,
-          "description": "URLs of subject/style reference images, referenced in the prompt as Image 1, Image 2, and so on. Reference images, videos, and audio clips must add up to at most 12 files.",
+          "description": "URLs of motion/reference video clips (2-15 seconds each, combined duration at most 15 seconds), referenced in the prompt as Video 1, Video 2, and so on. Reference images, videos, and audio clips must add up to at most 12 files.",
           "accepted_type": "array",
           "item_type": "string",
           "limits": {
             "min_items": null,
-            "max_items": 9,
+            "max_items": 3,
             "max_megabytes": null,
-            "min_seconds": null,
-            "max_seconds": null
+            "min_seconds": 2,
+            "max_seconds": 15
           },
           "provenance": [
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         },
@@ -1238,39 +1343,39 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         },
         {
-          "field": "reference_video_urls",
-          "modality": "video",
+          "field": "reference_image_urls",
+          "modality": "image",
           "role": "reference",
           "arity": "multiple",
           "required": false,
-          "description": "URLs of motion/reference video clips (2-15 seconds each, combined duration at most 15 seconds), referenced in the prompt as Video 1, Video 2, and so on. Reference images, videos, and audio clips must add up to at most 12 files.",
+          "description": "URLs of subject/style reference images, referenced in the prompt as Image 1, Image 2, and so on. Reference images, videos, and audio clips must add up to at most 12 files.",
           "accepted_type": "array",
           "item_type": "string",
           "limits": {
             "min_items": null,
-            "max_items": 3,
+            "max_items": 9,
             "max_megabytes": null,
-            "min_seconds": 2,
-            "max_seconds": 15
+            "min_seconds": null,
+            "max_seconds": null
           },
           "provenance": [
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }
       ],
       "modalities": [
-        "image",
+        "video",
         "audio",
-        "video"
+        "image"
       ],
       "primary_image_field": "reference_image_urls",
       "image_arity": "multiple",
@@ -1284,31 +1389,10 @@
       "vendor": "Alibaba",
       "output": "video",
       "lane": "r2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:53.338Z",
       "inputs": [
-        {
-          "field": "reference_image_urls",
-          "modality": "image",
-          "role": "reference",
-          "arity": "multiple",
-          "required": false,
-          "description": "Reference image URLs for character/object appearance. Pass multiple images for multi-subject generation. Max 20 MB each.",
-          "accepted_type": "array",
-          "item_type": "string",
-          "limits": {
-            "min_items": null,
-            "max_items": null,
-            "max_megabytes": 20,
-            "min_seconds": null,
-            "max_seconds": null
-          },
-          "provenance": [
-            {
-              "source": "fal-openapi",
-              "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
-            }
-          ]
-        },
         {
           "field": "reference_video_urls",
           "modality": "video",
@@ -1329,14 +1413,38 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
+            }
+          ]
+        },
+        {
+          "field": "reference_image_urls",
+          "modality": "image",
+          "role": "reference",
+          "arity": "multiple",
+          "required": false,
+          "description": "Reference image URLs for character/object appearance. Pass multiple images for multi-subject generation. Max 20 MB each.",
+          "accepted_type": "array",
+          "item_type": "string",
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": 20,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }
       ],
       "modalities": [
-        "image",
-        "video"
+        "video",
+        "image"
       ],
       "primary_image_field": "reference_image_urls",
       "image_arity": "multiple",
@@ -1350,6 +1458,9 @@
       "vendor": "xAI",
       "output": "video",
       "lane": "r2v",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-18T02:59:53.611Z",
       "inputs": [
         {
           "field": "reference_image_urls",
@@ -1371,7 +1482,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-12T18:57:37.821Z"
+              "checked_at": "2026-08-18T02:59:53.611Z"
             }
           ]
         }

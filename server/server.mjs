@@ -21,6 +21,8 @@ import { spawn } from "node:child_process";
 import { readCatalogSync, syncFalCatalog } from "./catalog_sync.mjs";
 import { createStore } from "./db.mjs";
 import { loadOrBuildCapabilityManifest } from "./build_capabilities.mjs";
+import { validateParams } from "./format_gate.mjs";
+import { checkDeprecation } from "./deprecation.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DATA = resolve(process.env.BENCH_DATA_DIR || join(HERE, "..", "data"));
@@ -1176,6 +1178,18 @@ app.post("/api/generate", async (req, res) => {
   const model = byId.get(modelId);
   if (!model) return res.status(400).json({ error: `unknown model ${modelId}` });
   if (!prompt) return res.status(400).json({ error: "prompt required" });
+
+  // PRD v5 Phase 3 — deprecation and format gates. Both are cheap, local
+  // checks against data already in registry.json, so they run before any
+  // reference-asset validation or network call.
+  const dep = checkDeprecation(model);
+  if (dep.deprecated) {
+    return res.status(400).json({ error: `${model.label} is ${dep.reason}. Choose a different model.` });
+  }
+  const fmt = validateParams(model, params);
+  if (!fmt.ok) {
+    return res.status(400).json({ error: fmt.error, field: fmt.field, supported: fmt.supported });
+  }
 
   // Never let a reference silently disappear. The client normally switches to
   // the paired image-capable endpoint, but this guard protects direct callers
