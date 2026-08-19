@@ -312,11 +312,19 @@ export function remainingCapacity(model, currentAssets, mediaType) {
 // Model selection should never feel broken because an old attachment no
 // longer fits. Keep every asset the new endpoint can accept, remap its field,
 // and return the remainder so the UI can explain what was removed.
+//
+// Strip the old field/element assignment before reassigning: those names are
+// specific to the model the asset was attached under, and assignInputFields'
+// manual-field branch now validates a set `field` strictly (added for the
+// UI's slot picker) rather than ignoring it — so carrying a stale field name
+// across a model switch would hard-reject instead of remapping. Dropping it
+// here routes back through the auto-pick path, which is what "remap" means.
 export function retainCompatibleAssets(model, assets) {
   let compatible = [];
   const removed = [];
   for (const asset of assets) {
-    const assignment = assignInputFields(model, [...compatible, asset]);
+    const { field: _field, element_index: _ei, element_role: _er, ...rest } = asset;
+    const assignment = assignInputFields(model, [...compatible, rest]);
     if (assignment.ok) compatible = assignment.assets;
     else removed.push(asset);
   }

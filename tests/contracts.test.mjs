@@ -13,8 +13,8 @@ test("every production model has a unique id, output kind, lane, params, and cap
   assert.equal(new Set(models.map((model) => model.id)).size, models.length);
   for (const model of models) {
     assert.match(model.id, /^[a-z0-9][a-z0-9._/-]+$/i, model.id);
-    assert.ok(["image", "video"].includes(model.kind), `${model.id}: invalid kind`);
-    assert.ok(["t2i", "i2i", "t2v", "i2v", "r2v"].includes(model.lane), `${model.id}: invalid lane`);
+    assert.ok(["image", "video", "audio"].includes(model.kind), `${model.id}: invalid kind`);
+    assert.ok(["t2i", "i2i", "t2v", "i2v", "r2v", "talking-head", "tts"].includes(model.lane), `${model.id}: invalid lane`);
     assert.equal(typeof model.params, "object", `${model.id}: missing params`);
     assert.ok(model.capabilities, `${model.id}: missing capability manifest`);
     assert.equal(model.capabilities.output, model.kind, `${model.id}: capability output drift`);
