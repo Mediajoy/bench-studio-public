@@ -522,12 +522,12 @@ function appendLedger(row) {
   return store.addGeneration(row);
 }
 
-function readLedger(client) {
-  return store.listGenerations(500, client);
+function readLedger(client, series) {
+  return store.listGenerations(500, client, series);
 }
 
-function spendSummary(client) {
-  return store.spendSummary(client);
+function spendSummary(client, series) {
+  return store.spendSummary(client, series);
 }
 
 // ---------------------------------------------------------------- prompt optimizer
@@ -1303,8 +1303,9 @@ app.get("/api/ledger", (req, res) => {
   // pre-sliced 200-row window client-side would silently hide an older
   // client's work once the archive grows past that window.
   const client = req.query.client || undefined;
-  const rows = readLedger(client).slice(0, 200);
-  res.json({ rows, summary: spendSummary(client), client: client ?? null });
+  const series = req.query.series || undefined;
+  const rows = readLedger(client, series).slice(0, 200);
+  res.json({ rows, summary: spendSummary(client, series), client: client ?? null, series: series ?? null });
 });
 
 app.delete("/api/results/:id", (req, res) => {
@@ -1365,11 +1366,19 @@ app.patch("/api/results/:id/client", (req, res) => {
   res.json(updated);
 });
 
+// Same, for the series sub-category under client.
+app.patch("/api/results/:id/series", (req, res) => {
+  const updated = store.setSeries(req.params.id, req.body?.series ?? null);
+  if (!updated) return res.status(404).json({ error: "Result not found" });
+  res.json(updated);
+});
+
 app.get("/api/results/starred", (req, res) => {
-  // Scoped to the active client so a church shoot never gets offered the
-  // salon's starred reference plates in the picker.
+  // Scoped to the active client/series so a church shoot never gets offered
+  // the salon's starred reference plates in the picker.
   const client = req.query.client || undefined;
-  res.json({ rows: store.listStarred(100, client) });
+  const series = req.query.series || undefined;
+  res.json({ rows: store.listStarred(100, client, series) });
 });
 
 app.get("/api/clients", (_req, res) => {
@@ -1380,6 +1389,22 @@ app.post("/api/clients/rename", (req, res) => {
   const { from, to } = req.body ?? {};
   try {
     res.json(store.renameClient(from, to));
+  } catch (e) {
+    res.status(400).json({ error: String(e.message ?? e) });
+  }
+});
+
+// Series only makes sense scoped to a client — there's no global "list every
+// series across every client" the way listClients() works, since the same
+// series name under two different clients is unrelated data.
+app.get("/api/series", (req, res) => {
+  res.json({ rows: store.listSeries(req.query.client || undefined) });
+});
+
+app.post("/api/series/rename", (req, res) => {
+  const { client, from, to } = req.body ?? {};
+  try {
+    res.json(store.renameSeries(client, from, to));
   } catch (e) {
     res.status(400).json({ error: String(e.message ?? e) });
   }
@@ -1503,7 +1528,7 @@ function buildElementObjects(fieldAssets) {
 // The main event. Streams progress back as newline-delimited JSON so the UI can
 // show queue position instead of a dead spinner.
 app.post("/api/generate", async (req, res) => {
-  const { modelId, prompt, params = {}, referenceUrls = [], inputAssets = [], format = "none", rawIdea = null, shotSettings = {}, dryRun = false, client = null } = req.body ?? {};
+  const { modelId, prompt, params = {}, referenceUrls = [], inputAssets = [], format = "none", rawIdea = null, shotSettings = {}, dryRun = false, client = null, series = null } = req.body ?? {};
   const model = byId.get(modelId);
   if (!model) return res.status(400).json({ error: `unknown model ${modelId}` });
   // Every model in the roster required a prompt until the talking-head/lip-sync
@@ -1607,7 +1632,7 @@ app.post("/api/generate", async (req, res) => {
     // gates and payload-building, only falSubmit()'s cost). Every gate above
     // this point still runs for real; only the paid network call is skipped.
     if (dryRun) {
-      send({ phase: "dry-run", input, estimate: pre, client });
+      send({ phase: "dry-run", input, estimate: pre, client, series });
       return res.end();
     }
 
@@ -1656,6 +1681,7 @@ app.post("/api/generate", async (req, res) => {
       estimated_cost: pre.cost,
       outputs,
       client,
+      series,
     };
     appendLedger(row);
 
@@ -1688,7 +1714,7 @@ function extractUrls(result) {
 // selected fal model has a mapped Kie counterpart, so modelId here is
 // always a fal ID we translate, not a raw Kie model name.
 app.post("/api/generate-kie", async (req, res) => {
-  const { modelId, prompt, params = {}, referenceUrls = [], rawIdea = null, client = null } = req.body ?? {};
+  const { modelId, prompt, params = {}, referenceUrls = [], rawIdea = null, client = null, series = null } = req.body ?? {};
   if (!KIE_API_KEY) return res.status(400).json({ error: "no KIE_API_KEY configured" });
   const kieKey = KIE_EQUIVALENTS[modelId];
   if (!kieKey) return res.status(400).json({ error: `${modelId} has no Kie equivalent` });
@@ -1743,6 +1769,7 @@ app.post("/api/generate-kie", async (req, res) => {
       estimated_cost: pre?.cost ?? null,
       outputs,
       client,
+      series,
     };
     appendLedger(row);
 
