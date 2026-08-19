@@ -1475,7 +1475,7 @@ function buildElementObjects(fieldAssets) {
 // The main event. Streams progress back as newline-delimited JSON so the UI can
 // show queue position instead of a dead spinner.
 app.post("/api/generate", async (req, res) => {
-  const { modelId, prompt, params = {}, referenceUrls = [], inputAssets = [], format = "none", rawIdea = null, shotSettings = {} } = req.body ?? {};
+  const { modelId, prompt, params = {}, referenceUrls = [], inputAssets = [], format = "none", rawIdea = null, shotSettings = {}, dryRun = false } = req.body ?? {};
   const model = byId.get(modelId);
   if (!model) return res.status(400).json({ error: `unknown model ${modelId}` });
   // Every model in the roster required a prompt until the talking-head/lip-sync
@@ -1573,6 +1573,16 @@ app.post("/api/generate", async (req, res) => {
 
     const pre = estimateCost(modelId, input);
     send({ phase: "submitting", input, estimate: pre });
+
+    // Verification/testing hook (added after a manual test accidentally hit
+    // fal for real — /api/quote alone doesn't exercise this handler's own
+    // gates and payload-building, only falSubmit()'s cost). Every gate above
+    // this point still runs for real; only the paid network call is skipped.
+    if (dryRun) {
+      send({ phase: "dry-run", input, estimate: pre });
+      return res.end();
+    }
+
     const q = await falSubmit(modelId, input);
     for (const field of new Set(normalizedAssets.map((asset) => asset.field))) {
       store.recordCapabilityCheck({
