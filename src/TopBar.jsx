@@ -1,7 +1,13 @@
 import React from "react";
 import ClientSelect from "./ClientSelect.jsx";
+import SeriesSelect from "./SeriesSelect.jsx";
 
-export default function TopBar({ summary, activeView, onLedger, ledgerOpen, billing, onCredits, creditsOpen, activeClient, clients, onClientChange }) {
+export default function TopBar({ summary, activeView, onLedger, ledgerOpen, billing, onCredits, creditsOpen, activeClient, clients, onClientChange, activeSeries, series, onSeriesChange }) {
+  // Series is meaningful under any single scope — a real client or
+  // Unassigned both have their own series bucket. Only "All clients"
+  // (activeClient === "") has no single scope to hang a series off of, so
+  // the selector doesn't render at all rather than showing disabled.
+  const hasClientScope = Boolean(activeClient);
   const month = summary?.month ?? 0;
   const all = summary?.all_time ?? 0;
   const gens = summary?.total_generations ?? 0;
@@ -35,6 +41,7 @@ export default function TopBar({ summary, activeView, onLedger, ledgerOpen, bill
       <div className="top-spacer" />
 
       <ClientSelect value={activeClient} clients={clients} onChange={onClientChange} />
+      {hasClientScope && <SeriesSelect value={activeSeries} series={series} onChange={onSeriesChange} />}
 
       <div className="usage" title={`$${fmt(all)} all time`}>
         <span>Usage</span>

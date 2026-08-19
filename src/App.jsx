@@ -259,6 +259,48 @@ export default function App() {
     try { return localStorage.getItem("bench.active-client") || ""; } catch { return ""; }
   });
   const [clients, setClients] = useState([]);
+  // Series is a sub-category *under* client — it only means anything once a
+  // specific client is active, so it's remembered per-client (a map in
+  // localStorage) rather than one flat value: switching from "Grace Church /
+  // Sunday Sermons" to "Salon B" shouldn't silently carry "Sunday Sermons"
+  // along, but switching back to Grace Church should restore it.
+  const [activeSeries, setActiveSeries] = useState("");
+  const [seriesList, setSeriesList] = useState([]);
+  // A series that was just created (typed into the TopBar's SeriesSelect)
+  // but has zero generations yet, so it can't come back from /api/series —
+  // that endpoint is a GROUP BY over real rows, there is no series table.
+  // Keyed by scope (a client slug, or "__none__" for Unassigned) so a
+  // pending slug survives switching activeSeries away to filter by it (which
+  // would otherwise be the only place it existed) and switching back to
+  // "All series" (which would otherwise destroy it, since it lived only in
+  // that one state variable). Capped per-scope so an abandoned slug the user
+  // never actually used doesn't show "(new)" forever.
+  const [pendingSeries, setPendingSeries] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("bench.pending-series-by-client") || "{}"); } catch { return {}; }
+  });
+  const PENDING_SERIES_CAP = 5;
+
+  useEffect(() => {
+    try { localStorage.setItem("bench.pending-series-by-client", JSON.stringify(pendingSeries)); } catch {}
+  }, [pendingSeries]);
+
+  // Captures series creation without SeriesSelect needing to know pending
+  // series exist — it calls onChange(slug) identically whether the slug was
+  // picked from the fetched list or just typed, so this one hook is the only
+  // place that needs to distinguish "already real" from "not yet real".
+  function chooseSeries(next) {
+    setActiveSeries(next);
+    if (!next || next === "__none__") return;
+    const alreadyReal = seriesList.some((row) => row.series === next);
+    if (alreadyReal) return;
+    setPendingSeries((current) => {
+      const scope = activeClient || "__none__";
+      const existing = current[scope] ?? [];
+      if (existing.includes(next)) return current;
+      const nextList = [...existing, next].slice(-PENDING_SERIES_CAP);
+      return { ...current, [scope]: nextList };
+    });
+  }
   // Deliberately separate from ledger.summary (which becomes client-filtered
   // once a client is active) — TopBar's Usage figure is account-wide and
   // shouldn't jump around as the filter changes. Server-side, every endpoint
@@ -285,13 +327,68 @@ export default function App() {
   const ledgerRetryRef = useRef(null);
   const activeClientRef = useRef(activeClient);
   useEffect(() => { activeClientRef.current = activeClient; }, [activeClient]);
+  const activeSeriesRef = useRef(activeSeries);
+  useEffect(() => { activeSeriesRef.current = activeSeries; }, [activeSeries]);
 
   useEffect(() => {
     try { localStorage.setItem("bench.active-client", activeClient); } catch {}
   }, [activeClient]);
 
+  function readSeriesMap() {
+    try { return JSON.parse(localStorage.getItem("bench.active-series-by-client") || "{}"); } catch { return {}; }
+  }
+
+  // Restore whatever series was active for this client last time (or "" —
+  // all series — for a client never visited before), every time the active
+  // client changes. Runs before the persistence effect below so switching
+  // clients doesn't first overwrite the just-restored value.
+  //
+  // A restored series also has to be re-seeded into pendingSeries: across a
+  // reload, activeSeries comes back from this map but pendingSeries is a
+  // separate key, so a still-unmaterialized series would survive in the
+  // TopBar (SeriesSelect synthesizes it from `value`) while silently
+  // vanishing from every card's Details — the same creation deadlock in a
+  // narrower form. Seeding unconditionally is safe: refreshSeries() prunes
+  // it right back out on the next fetch if it turns out to have real rows.
+  useEffect(() => {
+    const map = readSeriesMap();
+    const restored = map[activeClient] || "";
+    setActiveSeries(restored);
+    if (!restored || restored === "__none__") return;
+    const scope = activeClient || "__none__";
+    setPendingSeries((current) => {
+      const existing = current[scope] ?? [];
+      if (existing.includes(restored)) return current;
+      return { ...current, [scope]: [...existing, restored].slice(-PENDING_SERIES_CAP) };
+    });
+  }, [activeClient]);
+
+  useEffect(() => {
+    if (!activeClient) return; // no scope selected, nothing to key the map on — "__none__" (Unassigned) is a fine key
+    const map = readSeriesMap();
+    map[activeClient] = activeSeries;
+    try { localStorage.setItem("bench.active-series-by-client", JSON.stringify(map)); } catch {}
+  }, [activeClient, activeSeries]);
+
   function refreshClients() {
     readJson("/api/clients").then((d) => setClients(d.rows ?? [])).catch(() => {});
+  }
+
+  function refreshSeries() {
+    if (!activeClientRef.current) { setSeriesList([]); return; }
+    readJson(`/api/series?client=${encodeURIComponent(activeClientRef.current)}`)
+      .then((d) => setSeriesList(d.rows ?? []))
+      .catch(() => {});
+    // Deliberately no pruning of pendingSeries here. A slug that gains a
+    // real generation is already hidden from every display site by their
+    // own dedup (seriesOptionsForBar filters pending-vs-seriesList,
+    // Work.jsx's seriesSelectOptions uses a `seen` set with fetched rows
+    // winning) — so pruning bought nothing except a trap: if that slug's
+    // last generation is later cleared back to "no series", the series
+    // still exists (the user typed it, it's a live option) but it would
+    // vanish from every menu with no way back short of retyping it in the
+    // TopBar. Once created, a pending slug is only removed by the cap in
+    // chooseSeries() evicting the oldest, never by going quiet.
   }
 
   function refreshGlobalSummary() {
@@ -306,6 +403,19 @@ export default function App() {
     () => pairedImageModel(catalog?.models, model),
     [catalog, model]
   );
+
+  // seriesList (fetched rows) plus any pending-but-not-yet-real series for
+  // the active scope, so a just-typed series survives switching the
+  // TopBar filter back to "All series" instead of vanishing — the step that
+  // fails without a store separate from activeSeries itself.
+  const seriesOptionsForBar = useMemo(() => {
+    const scope = activeClient || "__none__";
+    const pending = pendingSeries[scope] ?? [];
+    const extra = pending
+      .filter((slug) => !seriesList.some((row) => row.series === slug))
+      .map((slug) => ({ series: slug, n: 0, last_ts: null, spend: 0 }));
+    return [...seriesList, ...extra];
+  }, [seriesList, pendingSeries, activeClient]);
 
   useEffect(() => {
     refsRef.current = refs;
@@ -355,13 +465,21 @@ export default function App() {
   }, []);
 
   // Fires once on mount (covering the initial load) and again whenever the
-  // active client changes — this IS the filter mechanism: refreshLedger
-  // reads the client from activeClientRef and re-fetches scoped to it, and
+  // active client or series changes — this IS the filter mechanism:
+  // refreshLedger reads both from refs and re-fetches scoped to them, and
   // since `shots` is derived from the ledger response, Work.jsx's rendering
-  // needs no filter logic of its own.
+  // needs no filter logic of its own. (A client switch also triggers the
+  // series-restore effect above, which may fire a second, corrective fetch
+  // right after this one — self-correcting, not worth suppressing.)
   useEffect(() => {
     clearTimeout(ledgerRetryRef.current);
     refreshLedger();
+  }, [activeClient, activeSeries]);
+
+  // Which series exist is a property of the client, not of which one is
+  // currently selected — only refetch the list when the client changes.
+  useEffect(() => {
+    refreshSeries();
   }, [activeClient]);
 
   async function refreshBilling(force = false) {
@@ -408,13 +526,18 @@ export default function App() {
 
   function refreshLedger(attempt = 0) {
     const client = activeClientRef.current;
-    const query = client ? `?client=${encodeURIComponent(client)}` : "";
+    const series = activeSeriesRef.current;
+    const params = new URLSearchParams();
+    if (client) params.set("client", client);
+    if (series) params.set("series", series);
+    const query = params.toString() ? `?${params.toString()}` : "";
     readJson(`/api/ledger${query}`)
       .then((l) => {
-        // The active client may have changed again while this request was
-        // in flight (e.g. a retry landing late) — drop it rather than
-        // showing results filtered for a client that's no longer selected.
-        if (activeClientRef.current !== client) return;
+        // The active client/series may have changed again while this
+        // request was in flight (e.g. a retry landing late) — drop it
+        // rather than showing results filtered for a scope that's no
+        // longer selected.
+        if (activeClientRef.current !== client || activeSeriesRef.current !== series) return;
         setLedger(l);
         const past = (l.rows ?? [])
           .filter((r) => r.outputs?.length)
@@ -422,7 +545,7 @@ export default function App() {
         setShots(past);
       })
       .catch(() => {
-        if (activeClientRef.current !== client) return;
+        if (activeClientRef.current !== client || activeSeriesRef.current !== series) return;
         if (attempt < 12) {
           ledgerRetryRef.current = setTimeout(() => refreshLedger(attempt + 1), Math.min(1800, 450 + attempt * 125));
         }
@@ -443,6 +566,7 @@ export default function App() {
       }));
       refreshLedger();
       refreshClients();
+      refreshSeries();
     } catch (deleteError) {
       setError(`Could not delete this result: ${deleteError.message ?? deleteError}`);
       throw deleteError;
@@ -490,6 +614,29 @@ export default function App() {
       refreshClients();
     } catch (clientError) {
       setError(`Could not update client: ${clientError.message ?? clientError}`);
+    }
+  }
+
+  // Same, one level deeper — reassign a generation's series within its
+  // current client.
+  async function setShotSeries(shot, series) {
+    if (!shot?.archive_id) return;
+    try {
+      const updated = await readJson(`/api/results/${encodeURIComponent(shot.archive_id)}/series`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ series }),
+      });
+      const stillMatches = activeSeries === ""
+        || (activeSeries === "__none__" ? updated.series === null : updated.series === activeSeries);
+      if (stillMatches) {
+        setShots((current) => current.map((s) => (s.archive_id === shot.archive_id ? { ...s, series: updated.series } : s)));
+      } else {
+        setShots((current) => current.filter((s) => s.archive_id !== shot.archive_id));
+      }
+      refreshSeries();
+    } catch (seriesError) {
+      setError(`Could not update series: ${seriesError.message ?? seriesError}`);
     }
   }
 
@@ -707,6 +854,10 @@ export default function App() {
     try {
       const useKie = provider === "kie" && quote?.kie;
       const client = activeClient && activeClient !== "__none__" ? activeClient : null;
+      // series travels alongside any real scope — a real client OR
+      // Unassigned both have a meaningful series to tag with; only "All
+      // clients" (activeClient === "") does not.
+      const series = activeClient && activeSeries && activeSeries !== "__none__" ? activeSeries : null;
       const res = await fetch(useKie ? "/api/generate-kie" : "/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -714,10 +865,10 @@ export default function App() {
         body: JSON.stringify(useKie ? {
           modelId, prompt, params, rawIdea: idea,
           referenceUrls: refs.map((r) => r.url),
-          client,
+          client, series,
         } : {
           modelId, prompt, params, format, rawIdea: idea,
-          shotSettings, client,
+          shotSettings, client, series,
           inputAssets: refs.map(({ url, field, media_type, upload_id, name, element_index, element_role }) => ({
             url, field, media_type, upload_id, name, element_index, element_role,
           })),
@@ -748,19 +899,23 @@ export default function App() {
             setError(ev.error); setJob(null);
           }
           else if (ev.phase === "done") {
-            // Only prepend optimistically if it belongs to the client
-            // currently being viewed — a client switch mid-generation
-            // shouldn't inject a card into a filtered view it doesn't
-            // belong to. refreshLedger() below corrects the view either way.
+            // Only prepend optimistically if it belongs to the client AND
+            // series currently being viewed — a client/series switch
+            // mid-generation shouldn't inject a card into a filtered view
+            // it doesn't belong to. refreshLedger() below corrects the view
+            // either way.
             const evClient = ev.ledger?.client && ev.ledger.client !== "__none__" ? ev.ledger.client : null;
             const viewingClient = activeClient && activeClient !== "__none__" ? activeClient : null;
-            if (evClient === viewingClient) {
+            const evSeries = ev.ledger?.series && ev.ledger.series !== "__none__" ? ev.ledger.series : null;
+            const viewingSeries = activeSeries && activeSeries !== "__none__" ? activeSeries : null;
+            if (evClient === viewingClient && evSeries === viewingSeries) {
               setShots((p) => [{ ...ev.ledger, at: Date.now() }, ...p]);
             }
             setJob(null);
             setGlobalSummary(ev.spend);
             refreshLedger();
             refreshClients();
+            refreshSeries();
           } else setJob((j) => ({ ...j, ...ev }));
         }
       }
@@ -808,6 +963,9 @@ export default function App() {
         activeClient={activeClient}
         clients={clients}
         onClientChange={setActiveClient}
+        activeSeries={activeSeries}
+        series={seriesOptionsForBar}
+        onSeriesChange={chooseSeries}
       />
 
       <div className="scroll">
@@ -863,6 +1021,7 @@ export default function App() {
                     busy={busy}
                     running={Boolean(job)}
                     activeClient={activeClient}
+                    activeSeries={activeSeries}
                   />
                 </div>
 
@@ -872,7 +1031,7 @@ export default function App() {
                 )}
                 {(job || shots.length > 0) && (
                   <section className="create-results" id="create-results" aria-label="Generated media">
-                    <Work job={job} shots={shots} onDelete={deleteResult} onToggleStar={toggleStar} onSetClient={setShotClient} clients={clients} activeClient={activeClient} />
+                    <Work job={job} shots={shots} onDelete={deleteResult} onToggleStar={toggleStar} onSetClient={setShotClient} clients={clients} activeClient={activeClient} onSetSeries={setShotSeries} activeSeries={activeSeries} pendingSeries={pendingSeries} />
                   </section>
                 )}
               </section>}
@@ -888,7 +1047,7 @@ export default function App() {
                     <a className="view-action" href="#create">Create another</a>
                   </div>
                   {error && <ErrorNotice error={error} onClose={() => setError(null)} />}
-                  <Work job={job} shots={shots} standalone onDelete={deleteResult} onToggleStar={toggleStar} onSetClient={setShotClient} clients={clients} activeClient={activeClient} />
+                  <Work job={job} shots={shots} standalone onDelete={deleteResult} onToggleStar={toggleStar} onSetClient={setShotClient} clients={clients} activeClient={activeClient} onSetSeries={setShotSeries} activeSeries={activeSeries} pendingSeries={pendingSeries} />
                 </section>
               )}
 
@@ -922,7 +1081,7 @@ export default function App() {
       {showLedger && (
         <>
           <div className="modal-scrim" onClick={() => setShowLedger(false)} />
-          <Ledger ledger={ledger} onClose={() => setShowLedger(false)} activeClient={activeClient} />
+          <Ledger ledger={ledger} onClose={() => setShowLedger(false)} activeClient={activeClient} activeSeries={activeSeries} />
         </>
       )}
       {showCredits && (

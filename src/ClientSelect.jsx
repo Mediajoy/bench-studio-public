@@ -1,34 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import MenuSelect from "./MenuSelect.jsx";
+import { normalizeSlug, displayName } from "./slug.js";
 
 // MenuSelect takes flat {value,label} options and has no free-text input —
 // this wraps it with "All clients" / "Unassigned" / each known client /
 // "+ New client…", and swaps the trigger for an inline text input when the
 // last one is chosen. Kept separate from MenuSelect so its keyboard-nav
 // logic doesn't need to grow a text-entry mode.
-
-function displayName(slug) {
-  if (!slug) return "Unassigned";
-  return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-// Mirrors server/db.mjs's normalizeClient exactly — duplicated rather than
-// shared across the Node/browser boundary, since it's small and pure. Keeps
-// a freshly-typed "Grace Church" matching the slug the server will store it
-// as, so the dropdown's selected state doesn't go stale the moment
-// listClients() comes back with "grace-church" instead.
-function normalizeClient(value) {
-  if (!value) return null;
-  const slug = String(value)
-    .trim()
-    .toLowerCase()
-    .replace(/[\s_]+/g, "-")
-    .replace(/[^a-z0-9-]/g, "")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-    .slice(0, 64);
-  return slug || null;
-}
 
 export default function ClientSelect({ value, clients, onChange }) {
   const [creating, setCreating] = useState(false);
@@ -50,7 +28,7 @@ export default function ClientSelect({ value, clients, onChange }) {
         onChange={(event) => setDraft(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Enter") {
-            const slug = normalizeClient(draft);
+            const slug = normalizeSlug(draft);
             if (slug) onChange(slug);
             setCreating(false);
             setDraft("");
@@ -99,5 +77,3 @@ export default function ClientSelect({ value, clients, onChange }) {
     />
   );
 }
-
-export { displayName };

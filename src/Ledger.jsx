@@ -1,17 +1,21 @@
 import React from "react";
-import { displayName } from "./ClientSelect.jsx";
+import { displayName } from "./slug.js";
 
 // Every generation this machine has ever made, and what it cost. This is the
 // artifact you can put on screen and let someone read — scoped to whatever
 // client is active, which is what makes "let me show you the ledger" a
 // defensible thing to do in front of that specific client.
 
-export default function Ledger({ ledger, onClose, activeClient = "" }) {
+export default function Ledger({ ledger, onClose, activeClient = "", activeSeries = "" }) {
   const { rows, summary } = ledger;
   const runs = summary?.total_generations ?? rows.length;
   const allTime = summary?.all_time ?? rows.reduce((total, row) => total + Number(row.cost ?? 0), 0);
   const average = runs ? allTime / runs : 0;
-  const scopeLabel = activeClient === "__none__" ? "Unassigned" : activeClient ? displayName(activeClient) : "all clients";
+  const clientLabel = activeClient === "__none__" ? "Unassigned" : activeClient ? displayName(activeClient) : "all clients";
+  const seriesLabel = activeClient && activeSeries
+    ? (activeSeries === "__none__" ? "no series" : displayName(activeSeries))
+    : null;
+  const scopeLabel = seriesLabel ? `${clientLabel} — ${seriesLabel}` : clientLabel;
 
   return (
     <aside className="sheet">

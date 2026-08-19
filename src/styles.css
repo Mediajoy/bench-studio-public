@@ -198,6 +198,7 @@ p { text-wrap: pretty; }
 .credit-btn:active { transform: translateY(1px); }
 
 .client-select { flex: none; max-width: 200px; }
+.series-select { margin-left: 6px; }
 .client-select .menu-trigger { min-height: 35px; border: 1px solid var(--line-bright); border-radius: var(--r-sm); color: var(--text-2); }
 .client-select .menu-trigger span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .client-select .menu-trigger:hover { color: var(--text); border-color: var(--text-2); background: var(--panel-raised); }
@@ -1017,12 +1018,18 @@ p { text-wrap: pretty; }
 .work-tag .dot.verified { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
 .work-tag .dot.estimated { background: #d1a96b; }
 .work-foot { padding: 12px 13px 14px; color: var(--text-2); font-size: 13px; line-height: 1.5; }
-.work-foot .l { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 7px; color: var(--text-2); }
-.work-title { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
-.work-name { overflow: hidden; color: var(--text); font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+/* wrap, not just space-between: a long client name (e.g. "Madelina Paradis")
+   plus a series chip can outgrow a 230px masonry column on its own — without
+   wrap, .work-actions has nowhere to go but overlap the title row instead of
+   dropping to its own line. */
+.work-foot .l { display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between; gap: 6px 10px; margin-bottom: 7px; color: var(--text-2); }
+.work-title { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px; min-width: 0; row-gap: 4px; }
+.work-name { overflow: hidden; max-width: 100%; color: var(--text); font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .work-format { flex: none; color: var(--text-3); font-size: 12px; }
-.work-client { flex: none; padding: 2px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 700; }
+.work-client { flex: none; max-width: 110px; overflow: hidden; padding: 2px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.work-series { background: var(--panel-raised); color: var(--text-2); }
 .work-details select { padding: 5px 8px; border: 1px solid var(--line-bright); border-radius: 6px; background: var(--panel-raised); color: var(--text); font-family: var(--sans); font-size: 12px; }
+.work-details-hint { color: var(--text-3); font-style: italic; }
 .work-actions { display: flex; align-items: center; gap: 8px; }
 .work-foot a, .work-actions button { flex: none; color: var(--text-2); font-size: 12px; text-decoration: none; }
 .work-actions button:hover, .work-foot a:hover { color: var(--accent); }

@@ -36,6 +36,50 @@ test("SQLite persists generations, assets, spend, and projects across reopen", (
   rmSync(dir, { recursive: true, force: true });
 });
 
+test("series scoping works for the Unassigned (client IS NULL) bucket", () => {
+  const dir = mkdtempSync(join(tmpdir(), "bench-series-"));
+  const dbPath = join(dir, "bench.db");
+  const ledger = join(dir, "ledger.jsonl");
+  writeFileSync(ledger, "");
+  const store = createStore({ dbPath, legacyLedgerPath: ledger });
+
+  const base = { ts: "2026-08-12T12:00:00.000Z", model: "model/test", label: "Test model", kind: "image", cost: 0.1, cost_confidence: "verified", outputs: [] };
+  store.addGeneration({ ...base, request_id: "req-1", client: null, series: null });
+  store.addGeneration({ ...base, request_id: "req-2", client: null, series: null });
+  store.addGeneration({ ...base, request_id: "req-3", client: "madelina-paradis", series: null });
+
+  // listSeries("__none__") groups only client IS NULL rows.
+  assert.deepEqual(store.listSeries("__none__"), [{ series: null, n: 2, last_ts: base.ts, spend: 0.2 }]);
+
+  // setSeries persists on a client IS NULL row.
+  const row1 = store.listGenerations(500, "__none__")[0];
+  const updated = store.setSeries(row1.archive_id, "owner-greetings");
+  assert.equal(updated.client, null);
+  assert.equal(updated.series, "owner-greetings");
+
+  const grouped = store.listSeries("__none__").sort((a, b) => String(a.series).localeCompare(String(b.series)));
+  assert.deepEqual(grouped, [
+    { series: null, n: 1, last_ts: base.ts, spend: 0.1 },
+    { series: "owner-greetings", n: 1, last_ts: base.ts, spend: 0.1 },
+  ]);
+
+  // listGenerations(500, "__none__", "<slug>") returns exactly that row.
+  const scoped = store.listGenerations(500, "__none__", "owner-greetings");
+  assert.equal(scoped.length, 1);
+  assert.equal(scoped[0].archive_id, row1.archive_id);
+
+  // renameSeries("__none__", ...) targets NULL-client rows, not a client
+  // literally named "none" (the normalizeSlug("__none__") === "none" trap).
+  const renamed = store.renameSeries("__none__", "owner-greetings", "owner-clips");
+  assert.equal(renamed.client, null);
+  assert.equal(renamed.updated, 1);
+  assert.equal(store.listGenerations(500, "__none__", "owner-clips").length, 1);
+  assert.equal(store.listGenerations(500, "madelina-paradis", "owner-clips").length, 0);
+
+  store.close();
+  rmSync(dir, { recursive: true, force: true });
+});
+
 test("legacy migration is idempotent", () => {
   const dir = mkdtempSync(join(tmpdir(), "bench-legacy-"));
   const dbPath = join(dir, "bench.db");

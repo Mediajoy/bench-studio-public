@@ -403,7 +403,11 @@ export function createStore({ dbPath, legacyLedgerPath }) {
   }
 
   function renameClient(from, to) {
-    const fromSlug = normalizeClient(from);
+    // "__none__" is the Unassigned sentinel, not a real slug — normalizeSlug
+    // would mangle it into the literal client "none" (underscores become
+    // dashes), silently targeting a nonexistent client and updating 0 rows.
+    // Check for it before normalizing, same as slugPredicate does for reads.
+    const fromSlug = from === "__none__" ? null : normalizeClient(from);
     const toSlug = normalizeClient(to);
     if (!toSlug) throw new Error("renameClient: 'to' must not be empty");
     const pred = fromSlug ? "client = ?" : "client IS NULL";
@@ -413,10 +417,12 @@ export function createStore({ dbPath, legacyLedgerPath }) {
   }
 
   // Scoped to a client, same reasoning as listSeries() — renaming a series
-  // only makes sense within one client's rows.
+  // only makes sense within one client's rows. Same "__none__" sentinel
+  // handling as renameClient above, for both the client scope and the
+  // series being renamed.
   function renameSeries(client, from, to) {
-    const clientSlug = normalizeClient(client);
-    const fromSlug = normalizeSeries(from);
+    const clientSlug = client === "__none__" ? null : normalizeClient(client);
+    const fromSlug = from === "__none__" ? null : normalizeSeries(from);
     const toSlug = normalizeSeries(to);
     if (!toSlug) throw new Error("renameSeries: 'to' must not be empty");
     const clientPred = clientSlug ? "client = ?" : "client IS NULL";

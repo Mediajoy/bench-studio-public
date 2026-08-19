@@ -588,7 +588,7 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
 // Pick one or more starred archive results to reuse as fresh references,
 // instead of downloading and re-uploading through Finder. Fetches on open
 // so it always reflects the latest starred set.
-function StarredPicker({ onClose, onPick, maxSelectable, activeClient }) {
+function StarredPicker({ onClose, onPick, maxSelectable, activeClient, activeSeries }) {
   const [rows, setRows] = useState(null);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
@@ -599,16 +599,22 @@ function StarredPicker({ onClose, onPick, maxSelectable, activeClient }) {
 
   useEffect(() => {
     let dead = false;
-    // Scoped to the active client so a church shoot doesn't get offered a
-    // salon's starred reference plates in the picker.
-    const client = activeClient && activeClient !== "__none__" ? activeClient : null;
-    const query = client ? `?client=${encodeURIComponent(client)}` : "";
+    // Scoped to the active client/series so a church shoot doesn't get
+    // offered a salon's starred reference plates in the picker — and so
+    // Unassigned doesn't get offered every client's starred plates either,
+    // now that Unassigned is a first-class scope like any client.
+    const client = activeClient || null;
+    const series = client && activeSeries && activeSeries !== "__none__" ? activeSeries : null;
+    const params = new URLSearchParams();
+    if (client) params.set("client", client);
+    if (series) params.set("series", series);
+    const query = params.toString() ? `?${params.toString()}` : "";
     fetch(`/api/results/starred${query}`)
       .then((r) => r.json())
       .then((d) => { if (!dead) setRows(d.rows ?? []); })
       .catch(() => { if (!dead) setError("Could not load starred results."); });
     return () => { dead = true; };
-  }, [activeClient]);
+  }, [activeClient, activeSeries]);
 
   // One selectable item per output, not per starred generation — a
   // multi-output generation (num_images > 1) should offer every image, and
@@ -722,7 +728,7 @@ export default function PromptBar({
   params, setParams, hide, refs, onAttach, onAttachFromArchive, onRemoveRef, onReassignRef,
   rewritten, setRewritten, onOptimize, onGenerate,
   quote, busy, running, onPickModel, referenceModel, shotSettings, setShotSettings,
-  provider, setProvider, activeClient,
+  provider, setProvider, activeClient, activeSeries,
 }) {
   const fileRef = useRef(null);
   const ideaRef = useRef(null);
@@ -1122,6 +1128,7 @@ export default function PromptBar({
         {showStarredPicker && (
           <StarredPicker
             activeClient={activeClient}
+            activeSeries={activeSeries}
             onClose={() => setShowStarredPicker(false)}
             onPick={(outputs) => {
               onAttachFromArchive?.(outputs);

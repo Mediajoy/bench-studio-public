@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import { displayName } from "./ClientSelect.jsx";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { displayName } from "./slug.js";
 
 // Results, big. Each one keeps its own price and billing confidence.
 
@@ -12,10 +12,14 @@ const FORMAT_LABELS = {
   poster: "Ad with headline",
 };
 
-export default function Work({ job, shots, standalone = false, onDelete, onToggleStar, onSetClient, clients = [], activeClient = "" }) {
-  const scopeLabel = activeClient === "__none__" ? "Unassigned"
+export default function Work({ job, shots, standalone = false, onDelete, onToggleStar, onSetClient, clients = [], activeClient = "", onSetSeries, activeSeries = "", pendingSeries = {} }) {
+  const clientLabel = activeClient === "__none__" ? "Unassigned"
     : activeClient ? displayName(activeClient)
     : null;
+  const seriesLabel = activeClient
+    ? (activeSeries === "__none__" ? "No series" : activeSeries ? displayName(activeSeries) : null)
+    : null;
+  const scopeLabel = [clientLabel, seriesLabel].filter(Boolean).join(" — ");
   return (
     <div className={`wall results-wall${standalone ? " standalone" : ""}`}>
       <div className="wall-head">
@@ -35,7 +39,16 @@ export default function Work({ job, shots, standalone = false, onDelete, onToggl
         <div className="masonry">
           {job && <Job job={job} />}
           {shots.map((s) => (
-            <Shot key={`${s.archive_id ?? s.request_id}-${s.at}`} shot={s} onDelete={onDelete} onToggleStar={onToggleStar} onSetClient={onSetClient} clients={clients} />
+            <Shot
+              key={`${s.archive_id ?? s.request_id}-${s.at}`}
+              shot={s}
+              onDelete={onDelete}
+              onToggleStar={onToggleStar}
+              onSetClient={onSetClient}
+              clients={clients}
+              onSetSeries={onSetSeries}
+              pendingSeries={pendingSeries}
+            />
           ))}
         </div>
       )}
@@ -59,16 +72,65 @@ function Job({ job }) {
   );
 }
 
-function Shot({ shot, onDelete, onToggleStar, onSetClient, clients = [] }) {
+function Shot({ shot, onDelete, onToggleStar, onSetClient, clients = [], onSetSeries, pendingSeries = {} }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [starring, setStarring] = useState(false);
   const [assigning, setAssigning] = useState(false);
+  const [assigningSeries, setAssigningSeries] = useState(false);
+  const [seriesOptions, setSeriesOptions] = useState([]);
   const verified = shot.cost_confidence === "verified";
   const formatLabel = FORMAT_LABELS[shot.format];
   const idea = String(shot.raw_idea || shot.prompt || "").trim();
   const resultLabel = shot.label || "Untitled result";
+  // Unassigned is a first-class scope too — a shot with no client can still
+  // take a series, it just files under the "__none__" bucket instead of a
+  // named client (the server already groups client IS NULL rows this way).
+  const shotScope = shot.client ?? "__none__";
+
+  // Series is scoped to THIS shot's own client/scope, independent of
+  // whatever client filter is active in TopBar — the earlier version tied
+  // this to the globally active client, which meant the control silently
+  // disappeared from Details whenever you weren't specifically filtered to
+  // that exact client (looked like a missing feature, not an empty state).
+  // Fetched lazily on open rather than passed down, since the global
+  // seriesList in App.jsx is scoped to one client at a time and can't serve
+  // every shot's own scope in a mixed "All clients" view.
+  useEffect(() => {
+    if (!detailsOpen) return;
+    setSeriesOptions([]); // stop the previous scope's series from staying selectable for a beat while this reassigns
+    let dead = false;
+    fetch(`/api/series?client=${encodeURIComponent(shotScope)}`)
+      .then((r) => r.json())
+      .then((d) => { if (!dead) setSeriesOptions(d.rows ?? []); })
+      .catch(() => {});
+    return () => { dead = true; };
+  }, [detailsOpen, shot.client]);
+
+  // Merge fetched rows with this shot's own pending (zero-generation, just
+  // created in the TopBar) series for the SAME scope, plus the shot's
+  // current value defensively so it never renders blank. Scope-matched only
+  // — a series created under Unassigned must not leak into a real client's
+  // Details and manufacture a cross-client series.
+  const seriesSelectOptions = useMemo(() => {
+    const seen = new Set();
+    const options = [];
+    for (const row of seriesOptions) {
+      if (!row.series || seen.has(row.series)) continue;
+      seen.add(row.series);
+      options.push({ value: row.series, label: displayName(row.series), isNew: false });
+    }
+    for (const slug of pendingSeries[shotScope] ?? []) {
+      if (!slug || seen.has(slug)) continue;
+      seen.add(slug);
+      options.push({ value: slug, label: `${displayName(slug)} (new)`, isNew: true });
+    }
+    if (shot.series && !seen.has(shot.series)) {
+      options.push({ value: shot.series, label: displayName(shot.series), isNew: false });
+    }
+    return options;
+  }, [seriesOptions, pendingSeries, shotScope, shot.series]);
 
   async function assignClient(event) {
     const next = event.target.value || null;
@@ -77,6 +139,16 @@ function Shot({ shot, onDelete, onToggleStar, onSetClient, clients = [] }) {
       await onSetClient?.(shot, next);
     } finally {
       setAssigning(false);
+    }
+  }
+
+  async function assignSeries(event) {
+    const next = event.target.value || null;
+    setAssigningSeries(true);
+    try {
+      await onSetSeries?.(shot, next);
+    } finally {
+      setAssigningSeries(false);
     }
   }
 
@@ -121,6 +193,7 @@ function Shot({ shot, onDelete, onToggleStar, onSetClient, clients = [] }) {
             <span className="work-name">{resultLabel}</span>
             {formatLabel && <span className="work-format">{formatLabel}</span>}
             {shot.client && <span className="work-client">{displayName(shot.client)}</span>}
+            {shot.series && <span className="work-client work-series">{displayName(shot.series)}</span>}
           </div>
           <div className="work-actions">
             {onToggleStar && shot.archive_id && (
@@ -163,6 +236,19 @@ function Shot({ shot, onDelete, onToggleStar, onSetClient, clients = [] }) {
                       <option value="">Unassigned</option>
                       {clients.filter((c) => c.client).map((c) => (
                         <option key={c.client} value={c.client}>{displayName(c.client)}</option>
+                      ))}
+                    </select>
+                  </dd>
+                </div>
+              )}
+              {onSetSeries && shot.archive_id && (
+                <div>
+                  <dt>Series</dt>
+                  <dd>
+                    <select value={shot.series ?? ""} onChange={assignSeries} disabled={assigningSeries} aria-label={`Assign ${resultLabel} to a series`}>
+                      <option value="">No series</option>
+                      {seriesSelectOptions.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
                       ))}
                     </select>
                   </dd>
