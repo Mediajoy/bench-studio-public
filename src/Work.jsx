@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { displayName } from "./ClientSelect.jsx";
 
 // Results, big. Each one keeps its own price and billing confidence.
 
@@ -11,14 +12,17 @@ const FORMAT_LABELS = {
   poster: "Ad with headline",
 };
 
-export default function Work({ job, shots, standalone = false, onDelete, onToggleStar }) {
+export default function Work({ job, shots, standalone = false, onDelete, onToggleStar, onSetClient, clients = [], activeClient = "" }) {
+  const scopeLabel = activeClient === "__none__" ? "Unassigned"
+    : activeClient ? displayName(activeClient)
+    : null;
   return (
     <div className={`wall results-wall${standalone ? " standalone" : ""}`}>
       <div className="wall-head">
-        <h2>{standalone ? "Library" : "Your results"}</h2>
+        <h2>{scopeLabel ? `${standalone ? "Library" : "Results"} — ${scopeLabel}` : (standalone ? "Library" : "Your results")}</h2>
         <span>{shots.length} {shots.length === 1 ? "result" : "results"}</span>
         <div className="rule" />
-        <span>${shots.reduce((a, s) => a + (Number(s.cost) || 0), 0).toFixed(3)} spent</span>
+        <span>${shots.reduce((a, s) => a + (Number(s.cost) || 0), 0).toFixed(3)} spent{scopeLabel ? ` (${scopeLabel})` : ""}</span>
       </div>
 
       {!job && !shots.length ? (
@@ -31,7 +35,7 @@ export default function Work({ job, shots, standalone = false, onDelete, onToggl
         <div className="masonry">
           {job && <Job job={job} />}
           {shots.map((s) => (
-            <Shot key={`${s.archive_id ?? s.request_id}-${s.at}`} shot={s} onDelete={onDelete} onToggleStar={onToggleStar} />
+            <Shot key={`${s.archive_id ?? s.request_id}-${s.at}`} shot={s} onDelete={onDelete} onToggleStar={onToggleStar} onSetClient={onSetClient} clients={clients} />
           ))}
         </div>
       )}
@@ -55,15 +59,26 @@ function Job({ job }) {
   );
 }
 
-function Shot({ shot, onDelete, onToggleStar }) {
+function Shot({ shot, onDelete, onToggleStar, onSetClient, clients = [] }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [starring, setStarring] = useState(false);
+  const [assigning, setAssigning] = useState(false);
   const verified = shot.cost_confidence === "verified";
   const formatLabel = FORMAT_LABELS[shot.format];
   const idea = String(shot.raw_idea || shot.prompt || "").trim();
   const resultLabel = shot.label || "Untitled result";
+
+  async function assignClient(event) {
+    const next = event.target.value || null;
+    setAssigning(true);
+    try {
+      await onSetClient?.(shot, next);
+    } finally {
+      setAssigning(false);
+    }
+  }
 
   async function removeResult() {
     setDeleting(true);
@@ -105,6 +120,7 @@ function Shot({ shot, onDelete, onToggleStar }) {
           <div className="work-title">
             <span className="work-name">{resultLabel}</span>
             {formatLabel && <span className="work-format">{formatLabel}</span>}
+            {shot.client && <span className="work-client">{displayName(shot.client)}</span>}
           </div>
           <div className="work-actions">
             {onToggleStar && shot.archive_id && (
@@ -139,6 +155,19 @@ function Shot({ shot, onDelete, onToggleStar }) {
               <div><dt>Cost</dt><dd>{verified ? "Verified billed amount" : "Estimate"} · ${Number(shot.cost ?? 0).toFixed(4)}</dd></div>
               {shot.request_id && <div><dt>Request</dt><dd>{shot.request_id}</dd></div>}
               <div><dt>Archive</dt><dd>{shot.outputs.some((output) => output.local_url) ? "Saved locally" : "Remote copy only"}</dd></div>
+              {onSetClient && shot.archive_id && (
+                <div>
+                  <dt>Client</dt>
+                  <dd>
+                    <select value={shot.client ?? ""} onChange={assignClient} disabled={assigning} aria-label={`Assign ${resultLabel} to a client`}>
+                      <option value="">Unassigned</option>
+                      {clients.filter((c) => c.client).map((c) => (
+                        <option key={c.client} value={c.client}>{displayName(c.client)}</option>
+                      ))}
+                    </select>
+                  </dd>
+                </div>
+              )}
             </dl>
             <strong>Prompt sent</strong>
             <p>{shot.prompt}</p>

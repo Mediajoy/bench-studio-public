@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import MenuSelect from "./MenuSelect.jsx";
 import {
   assignInputFields,
   formatPromptTag,
@@ -204,89 +205,6 @@ function ShotDirection({ format, values, onChange }) {
         ))}
       </div>
     </section>
-  );
-}
-
-function MenuSelect({ value, options, onChange, placeholder, ariaLabel, className = "" }) {
-  const [open, setOpen] = useState(false);
-  const [active, setActive] = useState(0);
-  const rootRef = useRef(null);
-  const selectedIndex = Math.max(0, options.findIndex((option) => String(option.value) === String(value)));
-  const selected = options.find((option) => String(option.value) === String(value));
-
-  useEffect(() => {
-    if (!open) return undefined;
-    const closeOnOutsideClick = (event) => {
-      if (!rootRef.current?.contains(event.target)) setOpen(false);
-    };
-    document.addEventListener("pointerdown", closeOnOutsideClick);
-    return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
-  }, [open]);
-
-  function toggle() {
-    setActive(selectedIndex);
-    setOpen((current) => !current);
-  }
-
-  function choose(option) {
-    onChange(option.value);
-    setOpen(false);
-  }
-
-  function onKeyDown(event) {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      setOpen(false);
-      return;
-    }
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      event.preventDefault();
-      setOpen(true);
-      setActive((current) => {
-        const next = event.key === "ArrowDown" ? current + 1 : current - 1;
-        return (next + options.length) % options.length;
-      });
-      return;
-    }
-    if ((event.key === "Enter" || event.key === " ") && open) {
-      event.preventDefault();
-      choose(options[active]);
-    }
-  }
-
-  return (
-    <div ref={rootRef} className={`menu-select${open ? " open" : ""}${className ? ` ${className}` : ""}`}>
-      <button
-        type="button"
-        className="menu-trigger"
-        aria-label={ariaLabel}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        onClick={toggle}
-        onKeyDown={onKeyDown}
-      >
-        <span>{selected?.label ?? placeholder}</span>
-        <i className="menu-chevron" aria-hidden="true" />
-      </button>
-      {open && (
-        <div className="menu-popover" role="listbox" aria-label={ariaLabel}>
-          {options.map((option, index) => (
-            <button
-              type="button"
-              role="option"
-              aria-selected={String(option.value) === String(value)}
-              className={`menu-option${String(option.value) === String(value) ? " selected" : ""}${active === index ? " active" : ""}`}
-              key={String(option.value)}
-              onMouseEnter={() => setActive(index)}
-              onClick={() => choose(option)}
-            >
-              <span>{option.label}</span>
-              {String(option.value) === String(value) && <b aria-hidden="true">✓</b>}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -670,7 +588,7 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
 // Pick one or more starred archive results to reuse as fresh references,
 // instead of downloading and re-uploading through Finder. Fetches on open
 // so it always reflects the latest starred set.
-function StarredPicker({ onClose, onPick, maxSelectable }) {
+function StarredPicker({ onClose, onPick, maxSelectable, activeClient }) {
   const [rows, setRows] = useState(null);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
@@ -681,12 +599,16 @@ function StarredPicker({ onClose, onPick, maxSelectable }) {
 
   useEffect(() => {
     let dead = false;
-    fetch("/api/results/starred")
+    // Scoped to the active client so a church shoot doesn't get offered a
+    // salon's starred reference plates in the picker.
+    const client = activeClient && activeClient !== "__none__" ? activeClient : null;
+    const query = client ? `?client=${encodeURIComponent(client)}` : "";
+    fetch(`/api/results/starred${query}`)
       .then((r) => r.json())
       .then((d) => { if (!dead) setRows(d.rows ?? []); })
       .catch(() => { if (!dead) setError("Could not load starred results."); });
     return () => { dead = true; };
-  }, []);
+  }, [activeClient]);
 
   // One selectable item per output, not per starred generation — a
   // multi-output generation (num_images > 1) should offer every image, and
@@ -800,7 +722,7 @@ export default function PromptBar({
   params, setParams, hide, refs, onAttach, onAttachFromArchive, onRemoveRef, onReassignRef,
   rewritten, setRewritten, onOptimize, onGenerate,
   quote, busy, running, onPickModel, referenceModel, shotSettings, setShotSettings,
-  provider, setProvider,
+  provider, setProvider, activeClient,
 }) {
   const fileRef = useRef(null);
   const ideaRef = useRef(null);
@@ -1135,6 +1057,10 @@ export default function PromptBar({
           </button>
         </div>
 
+        {(!activeClient || activeClient === "__none__") && (
+          <p className="client-note">Will be saved as Unassigned — pick a client in the top bar to tag it.</p>
+        )}
+
         {showDropzone && (
           <div className="dropzone-wrap">
             <div
@@ -1195,6 +1121,7 @@ export default function PromptBar({
 
         {showStarredPicker && (
           <StarredPicker
+            activeClient={activeClient}
             onClose={() => setShowStarredPicker(false)}
             onPick={(outputs) => {
               onAttachFromArchive?.(outputs);

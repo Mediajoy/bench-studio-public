@@ -1,6 +1,7 @@
 import React from "react";
+import ClientSelect from "./ClientSelect.jsx";
 
-export default function TopBar({ summary, activeView, onLedger, ledgerOpen, billing, onCredits, creditsOpen }) {
+export default function TopBar({ summary, activeView, onLedger, ledgerOpen, billing, onCredits, creditsOpen, activeClient, clients, onClientChange }) {
   const month = summary?.month ?? 0;
   const all = summary?.all_time ?? 0;
   const gens = summary?.total_generations ?? 0;
@@ -32,6 +33,8 @@ export default function TopBar({ summary, activeView, onLedger, ledgerOpen, bill
       </nav>
 
       <div className="top-spacer" />
+
+      <ClientSelect value={activeClient} clients={clients} onChange={onClientChange} />
 
       <div className="usage" title={`$${fmt(all)} all time`}>
         <span>Usage</span>

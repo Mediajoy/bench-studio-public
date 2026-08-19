@@ -1,29 +1,33 @@
 import React from "react";
+import { displayName } from "./ClientSelect.jsx";
 
 // Every generation this machine has ever made, and what it cost. This is the
-// artifact you can put on screen and let someone read.
+// artifact you can put on screen and let someone read — scoped to whatever
+// client is active, which is what makes "let me show you the ledger" a
+// defensible thing to do in front of that specific client.
 
-export default function Ledger({ ledger, onClose }) {
+export default function Ledger({ ledger, onClose, activeClient = "" }) {
   const { rows, summary } = ledger;
   const runs = summary?.total_generations ?? rows.length;
   const allTime = summary?.all_time ?? rows.reduce((total, row) => total + Number(row.cost ?? 0), 0);
   const average = runs ? allTime / runs : 0;
+  const scopeLabel = activeClient === "__none__" ? "Unassigned" : activeClient ? displayName(activeClient) : "all clients";
 
   return (
     <aside className="sheet">
       <div className="sheet-head">
         <div className="sheet-title">
           <h3>Generation ledger</h3>
-          <span>What ran, what was sent, and what it cost.</span>
+          <span>What ran, what was sent, and what it cost — {scopeLabel}.</span>
         </div>
         <span className="spacer" />
         <button type="button" className="ghost-btn" onClick={onClose}>Close</button>
       </div>
 
       <div className="sheet-body">
-        <div className="ledger-summary" aria-label="Usage summary">
-          <div><span>All-time spend</span><strong>${allTime.toFixed(3)}</strong></div>
-          <div><span>Completed runs</span><strong>{runs}</strong></div>
+        <div className="ledger-summary" aria-label={`Runs for ${scopeLabel}`}>
+          <div><span>Spend — {scopeLabel}</span><strong>${allTime.toFixed(3)}</strong></div>
+          <div><span>Runs — {scopeLabel}</span><strong>{runs}</strong></div>
           <div><span>Average per run</span><strong>${average.toFixed(3)}</strong></div>
         </div>
         {!rows.length ? (

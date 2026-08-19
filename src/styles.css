@@ -197,6 +197,23 @@ p { text-wrap: pretty; }
 .credit-btn:hover, .credit-btn.on { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
 .credit-btn:active { transform: translateY(1px); }
 
+.client-select { flex: none; max-width: 200px; }
+.client-select .menu-trigger { min-height: 35px; border: 1px solid var(--line-bright); border-radius: var(--r-sm); color: var(--text-2); }
+.client-select .menu-trigger span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.client-select .menu-trigger:hover { color: var(--text); border-color: var(--text-2); background: var(--panel-raised); }
+.client-select-new {
+  min-height: 35px;
+  max-width: 200px;
+  padding: 0 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--r-sm);
+  background: var(--panel-raised);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 /* ---------------------------------------------------------------- studio frame */
 
 .studio-layout {
@@ -913,6 +930,8 @@ p { text-wrap: pretty; }
 .hint b { color: var(--text-2); font-weight: 400; }
 .hint::before { content: "↳"; color: var(--accent); }
 
+.client-note { margin: 8px 0 0 2px; color: var(--text-3); font-size: 11px; line-height: 1.5; }
+
 .error-notice {
   display: flex;
   align-items: center;
@@ -1002,6 +1021,8 @@ p { text-wrap: pretty; }
 .work-title { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
 .work-name { overflow: hidden; color: var(--text); font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .work-format { flex: none; color: var(--text-3); font-size: 12px; }
+.work-client { flex: none; padding: 2px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 700; }
+.work-details select { padding: 5px 8px; border: 1px solid var(--line-bright); border-radius: 6px; background: var(--panel-raised); color: var(--text); font-family: var(--sans); font-size: 12px; }
 .work-actions { display: flex; align-items: center; gap: 8px; }
 .work-foot a, .work-actions button { flex: none; color: var(--text-2); font-size: 12px; text-decoration: none; }
 .work-actions button:hover, .work-foot a:hover { color: var(--accent); }

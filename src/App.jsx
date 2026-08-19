@@ -255,6 +255,17 @@ export default function App() {
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [syncingCatalog, setSyncingCatalog] = useState(false);
+  const [activeClient, setActiveClient] = useState(() => {
+    try { return localStorage.getItem("bench.active-client") || ""; } catch { return ""; }
+  });
+  const [clients, setClients] = useState([]);
+  // Deliberately separate from ledger.summary (which becomes client-filtered
+  // once a client is active) — TopBar's Usage figure is account-wide and
+  // shouldn't jump around as the filter changes. Server-side, every endpoint
+  // except /api/ledger?client= already returns the unfiltered spendSummary(),
+  // so this just needs its own state to avoid being overwritten by the
+  // filtered one.
+  const [globalSummary, setGlobalSummary] = useState(null);
 
   useEffect(() => {
     const syncView = () => {
@@ -272,6 +283,20 @@ export default function App() {
   }
   const abortRef = useRef(null);
   const ledgerRetryRef = useRef(null);
+  const activeClientRef = useRef(activeClient);
+  useEffect(() => { activeClientRef.current = activeClient; }, [activeClient]);
+
+  useEffect(() => {
+    try { localStorage.setItem("bench.active-client", activeClient); } catch {}
+  }, [activeClient]);
+
+  function refreshClients() {
+    readJson("/api/clients").then((d) => setClients(d.rows ?? [])).catch(() => {});
+  }
+
+  function refreshGlobalSummary() {
+    readJson("/api/ledger").then((l) => setGlobalSummary(l.summary)).catch(() => {});
+  }
 
   const model = useMemo(
     () => catalog?.models.find((m) => m.id === modelId) ?? null,
@@ -319,14 +344,25 @@ export default function App() {
     }
 
     loadCatalog();
-    refreshLedger();
     refreshBilling();
+    refreshClients();
+    refreshGlobalSummary();
     return () => {
       dead = true;
       clearTimeout(retryTimer);
       clearTimeout(ledgerRetryRef.current);
     };
   }, []);
+
+  // Fires once on mount (covering the initial load) and again whenever the
+  // active client changes — this IS the filter mechanism: refreshLedger
+  // reads the client from activeClientRef and re-fetches scoped to it, and
+  // since `shots` is derived from the ledger response, Work.jsx's rendering
+  // needs no filter logic of its own.
+  useEffect(() => {
+    clearTimeout(ledgerRetryRef.current);
+    refreshLedger();
+  }, [activeClient]);
 
   async function refreshBilling(force = false) {
     setRefreshingBilling(true);
@@ -371,8 +407,14 @@ export default function App() {
   }
 
   function refreshLedger(attempt = 0) {
-    readJson("/api/ledger")
+    const client = activeClientRef.current;
+    const query = client ? `?client=${encodeURIComponent(client)}` : "";
+    readJson(`/api/ledger${query}`)
       .then((l) => {
+        // The active client may have changed again while this request was
+        // in flight (e.g. a retry landing late) — drop it rather than
+        // showing results filtered for a client that's no longer selected.
+        if (activeClientRef.current !== client) return;
         setLedger(l);
         const past = (l.rows ?? [])
           .filter((r) => r.outputs?.length)
@@ -380,6 +422,7 @@ export default function App() {
         setShots(past);
       })
       .catch(() => {
+        if (activeClientRef.current !== client) return;
         if (attempt < 12) {
           ledgerRetryRef.current = setTimeout(() => refreshLedger(attempt + 1), Math.min(1800, 450 + attempt * 125));
         }
@@ -391,11 +434,15 @@ export default function App() {
     try {
       const result = await readJson(`/api/results/${encodeURIComponent(shot.archive_id)}`, { method: "DELETE" });
       setShots((current) => current.filter((candidate) => candidate.archive_id !== shot.archive_id));
+      // result.summary is the global figure (server's spendSummary() with no
+      // client arg) — feeds globalSummary, not the filtered ledger.summary.
+      setGlobalSummary(result.summary);
       setLedger((current) => ({
         ...current,
         rows: (current.rows ?? []).filter((candidate) => candidate.archive_id !== shot.archive_id),
-        summary: result.summary,
       }));
+      refreshLedger();
+      refreshClients();
     } catch (deleteError) {
       setError(`Could not delete this result: ${deleteError.message ?? deleteError}`);
       throw deleteError;
@@ -415,6 +462,34 @@ export default function App() {
     } catch (starError) {
       setShots((current) => current.map((s) => (s.archive_id === shot.archive_id ? { ...s, starred: !next } : s)));
       setError(`Could not update star: ${starError.message ?? starError}`);
+    }
+  }
+
+  // Backfill/reassign a generation's client, from the "Assign to client"
+  // control on a result card — the everyday tool for sorting the 4 (and
+  // growing) generations made before client tagging existed.
+  async function setShotClient(shot, client) {
+    if (!shot?.archive_id) return;
+    try {
+      const updated = await readJson(`/api/results/${encodeURIComponent(shot.archive_id)}/client`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ client }),
+      });
+      // If it was reassigned away from whatever's currently being viewed —
+      // "All clients" (never removes), "Unassigned" (removes once it gains
+      // a client), or a specific client (removes once it no longer matches)
+      // — it should drop out of this filtered view rather than linger.
+      const stillMatches = activeClient === ""
+        || (activeClient === "__none__" ? updated.client === null : updated.client === activeClient);
+      if (stillMatches) {
+        setShots((current) => current.map((s) => (s.archive_id === shot.archive_id ? { ...s, client: updated.client } : s)));
+      } else {
+        setShots((current) => current.filter((s) => s.archive_id !== shot.archive_id));
+      }
+      refreshClients();
+    } catch (clientError) {
+      setError(`Could not update client: ${clientError.message ?? clientError}`);
     }
   }
 
@@ -631,6 +706,7 @@ export default function App() {
 
     try {
       const useKie = provider === "kie" && quote?.kie;
+      const client = activeClient && activeClient !== "__none__" ? activeClient : null;
       const res = await fetch(useKie ? "/api/generate-kie" : "/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -638,9 +714,10 @@ export default function App() {
         body: JSON.stringify(useKie ? {
           modelId, prompt, params, rawIdea: idea,
           referenceUrls: refs.map((r) => r.url),
+          client,
         } : {
           modelId, prompt, params, format, rawIdea: idea,
-          shotSettings,
+          shotSettings, client,
           inputAssets: refs.map(({ url, field, media_type, upload_id, name, element_index, element_role }) => ({
             url, field, media_type, upload_id, name, element_index, element_role,
           })),
@@ -671,10 +748,19 @@ export default function App() {
             setError(ev.error); setJob(null);
           }
           else if (ev.phase === "done") {
-            setShots((p) => [{ ...ev.ledger, at: Date.now() }, ...p]);
+            // Only prepend optimistically if it belongs to the client
+            // currently being viewed — a client switch mid-generation
+            // shouldn't inject a card into a filtered view it doesn't
+            // belong to. refreshLedger() below corrects the view either way.
+            const evClient = ev.ledger?.client && ev.ledger.client !== "__none__" ? ev.ledger.client : null;
+            const viewingClient = activeClient && activeClient !== "__none__" ? activeClient : null;
+            if (evClient === viewingClient) {
+              setShots((p) => [{ ...ev.ledger, at: Date.now() }, ...p]);
+            }
             setJob(null);
-            setLedger((l) => ({ ...l, summary: ev.spend }));
+            setGlobalSummary(ev.spend);
             refreshLedger();
+            refreshClients();
           } else setJob((j) => ({ ...j, ...ev }));
         }
       }
@@ -712,13 +798,16 @@ export default function App() {
     <div className="shell">
       <a className="skip-link" href="#main-content">Skip to workspace</a>
       <TopBar
-        summary={ledger.summary}
+        summary={globalSummary}
         activeView={activeView}
         onLedger={() => { setShowCredits(false); setShowLedger((v) => !v); }}
         ledgerOpen={showLedger}
         billing={billing}
         onCredits={() => { setShowLedger(false); setShowCredits((value) => !value); }}
         creditsOpen={showCredits}
+        activeClient={activeClient}
+        clients={clients}
+        onClientChange={setActiveClient}
       />
 
       <div className="scroll">
@@ -773,6 +862,7 @@ export default function App() {
                     setProvider={setProvider}
                     busy={busy}
                     running={Boolean(job)}
+                    activeClient={activeClient}
                   />
                 </div>
 
@@ -782,7 +872,7 @@ export default function App() {
                 )}
                 {(job || shots.length > 0) && (
                   <section className="create-results" id="create-results" aria-label="Generated media">
-                    <Work job={job} shots={shots} onDelete={deleteResult} onToggleStar={toggleStar} />
+                    <Work job={job} shots={shots} onDelete={deleteResult} onToggleStar={toggleStar} onSetClient={setShotClient} clients={clients} activeClient={activeClient} />
                   </section>
                 )}
               </section>}
@@ -798,7 +888,7 @@ export default function App() {
                     <a className="view-action" href="#create">Create another</a>
                   </div>
                   {error && <ErrorNotice error={error} onClose={() => setError(null)} />}
-                  <Work job={job} shots={shots} standalone onDelete={deleteResult} onToggleStar={toggleStar} />
+                  <Work job={job} shots={shots} standalone onDelete={deleteResult} onToggleStar={toggleStar} onSetClient={setShotClient} clients={clients} activeClient={activeClient} />
                 </section>
               )}
 
@@ -832,7 +922,7 @@ export default function App() {
       {showLedger && (
         <>
           <div className="modal-scrim" onClick={() => setShowLedger(false)} />
-          <Ledger ledger={ledger} onClose={() => setShowLedger(false)} />
+          <Ledger ledger={ledger} onClose={() => setShowLedger(false)} activeClient={activeClient} />
         </>
       )}
       {showCredits && (
