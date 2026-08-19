@@ -81,6 +81,8 @@ const ROSTER = [
   { id: "minimax/h3/image-to-video",                kind: "video", lane: "i2v", label: "Hailuo H3 i2v",    vendor: "MiniMax" },
   { id: "wan/v2.6/image-to-video",                  kind: "video", lane: "i2v", label: "Wan 2.6 i2v",      vendor: "Alibaba" },
   { id: "fal-ai/veo3.1/fast/image-to-video",        kind: "video", lane: "i2v", label: "Veo 3.1 fast i2v", vendor: "Google" },
+  { id: "fal-ai/veo3.1/image-to-video",              kind: "video", lane: "i2v", label: "Veo 3.1 i2v",      vendor: "Google" },
+  { id: "fal-ai/veo3.1/first-last-frame-to-video",   kind: "video", lane: "i2v", label: "Veo 3.1 first+last frame", vendor: "Google", pair: "fal-ai/veo3.1/reference-to-video" },
 
   // --- video that keeps YOUR product on model ---
   // These take reference images of a subject rather than a start frame, which
@@ -121,12 +123,14 @@ const IMAGE_PARAMS = [
   { name: "image_url",            arity: "single" },
   { name: "start_image_url",      arity: "single" },
   { name: "end_image_url",        arity: "single" },
+  { name: "first_frame_url",      arity: "single" },
+  { name: "last_frame_url",       arity: "single" },
 ];
 
 function modalityFor(name) {
   if (name === "elements") return "mixed";
   if (!/_urls?$/.test(name)) return null;
-  if (/image|mask|frontal/.test(name)) return "image";
+  if (/image|mask|frontal|frame/.test(name)) return "image";
   if (/video/.test(name)) return "video";
   if (/audio/.test(name)) return "audio";
   if (/pdf/.test(name)) return "document";
@@ -134,12 +138,41 @@ function modalityFor(name) {
 }
 
 function roleFor(name) {
-  if (/start_image/.test(name)) return "start-frame";
-  if (/end_image/.test(name)) return "end-frame";
+  if (name === "elements") return "ingredient";
+  if (/start_image|first_frame/.test(name)) return "start-frame";
+  if (/end_image|last_frame/.test(name)) return "end-frame";
   if (/mask/.test(name)) return "mask";
   if (/reference/.test(name)) return "reference";
   if (/frontal/.test(name)) return "identity-anchor";
   return "source";
+}
+
+// roleFor() only sees the field name, which misses models that reuse a
+// generic name like `image_url` for what its own schema description says is
+// a start frame (LTX 2.5, Seedance 2.5, Hailuo H3 i2v all do this). Promote
+// those using the description text already captured — still schema-derived,
+// just a second pass over evidence roleFor() cannot see from the name alone.
+const START_FRAME_DESCRIPTION = /first frame|start(ing)? (frame|image)/i;
+
+function refineRoles(mediaInputs) {
+  const hasEndFrame = mediaInputs.some((input) => input.role === "end-frame");
+  for (const input of mediaInputs) {
+    if (input.role !== "source" || input.modality !== "image" || input.arity !== "single") continue;
+    if (START_FRAME_DESCRIPTION.test(input.description ?? "")) {
+      input.role = "start-frame";
+      continue;
+    }
+    // Companion inference: a model with an end-frame and exactly one other
+    // single-arity source image field almost always pairs them, even when
+    // this field's own description doesn't say "start".
+    if (hasEndFrame) {
+      const otherSourceSingles = mediaInputs.filter(
+        (other) => other !== input && other.role === "source" && other.modality === "image" && other.arity === "single"
+      );
+      if (otherSourceSingles.length === 0) input.role = "start-frame";
+    }
+  }
+  return mediaInputs;
 }
 
 function resolveRef(ref, doc) {
@@ -218,7 +251,7 @@ async function fetchModel(entry) {
 
   const imageInputs = IMAGE_PARAMS.filter((p) => p.name in props);
   const imageParam = imageInputs[0] ?? null;
-  const mediaInputs = Object.entries(props)
+  const mediaInputs = refineRoles(Object.entries(props)
     .filter(([name]) => modalityFor(name))
     .map(([name, spec]) => {
       const normalized = flattenParam(name, spec, doc);
@@ -229,7 +262,7 @@ async function fetchModel(entry) {
         arity: normalized.type === "array" ? "multiple" : "single",
         required: (input?.required ?? []).includes(name),
       };
-    });
+    }));
 
   const params = {};
   for (const [name, spec] of Object.entries(props)) {

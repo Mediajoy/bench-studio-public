@@ -1,8 +1,14 @@
 {
-  "generated_at": "2026-08-18T02:59:53.611Z",
-  "compared_against": "2026-08-18T02:59:24.970Z",
+  "generated_at": "2026-08-18T19:54:28.139Z",
+  "compared_against": "2026-08-18T18:49:24.019Z",
   "added": [],
   "removed": [],
-  "changed": [],
-  "unchanged_count": 37
+  "changed": [
+    "bytedance/seedance-2.5/text-to-video",
+    "lightricks/ltx-2.5/image-to-video/fast",
+    "bytedance/seedance-2.5/image-to-video",
+    "minimax/h3/image-to-video",
+    "wan/v2.6/image-to-video"
+  ],
+  "unchanged_count": 34
 }

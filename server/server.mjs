@@ -447,6 +447,8 @@ const KIE_EQUIVALENTS = {
   "fal-ai/veo3.1/fast": "veo-3.1",
   "fal-ai/veo3.1/fast/image-to-video": "veo-3.1",
   "fal-ai/veo3.1/reference-to-video": "veo-3.1",
+  "fal-ai/veo3.1/image-to-video": "veo-3.1",
+  "fal-ai/veo3.1/first-last-frame-to-video": "veo-3.1",
   "bytedance/seedance-2.5/text-to-video": "bytedance/seedance-2-5",
   "bytedance/seedance-2.5/image-to-video": "bytedance/seedance-2-5",
 };
@@ -1036,6 +1038,13 @@ async function backfillMediaMirrors() {
 // ---------------------------------------------------------------- app
 
 const app = express();
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    console.log(`${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - start}ms`);
+  });
+  next();
+});
 app.use(express.json({ limit: "25mb" }));
 app.use("/media", express.static(OUTPUTS, { fallthrough: false }));
 app.use("/previews", express.static(PREVIEWS, { fallthrough: false }));
@@ -1436,6 +1445,33 @@ app.post("/api/optimize", async (req, res) => {
   }
 });
 
+// Groups flat asset rows into fal's documented shape for a structured
+// (array-of-objects) field: `[{ frontal_image_url, reference_image_urls? }]`
+// in element_index order, one object per Kling character/object. Assets
+// missing element_index/element_role were never validated by the frontend's
+// assignInputFields — skip rather than guess, so a malformed asset can't
+// silently corrupt someone else's element.
+function buildElementObjects(fieldAssets) {
+  const groups = new Map();
+  for (const asset of fieldAssets) {
+    if (asset.element_index == null || !asset.element_role) continue;
+    const idx = Number(asset.element_index);
+    if (!groups.has(idx)) groups.set(idx, { frontal: null, angles: [] });
+    const group = groups.get(idx);
+    if (asset.element_role === "frontal") group.frontal = asset.url;
+    else if (asset.element_role === "angle") group.angles.push(asset.url);
+  }
+  return [...groups.keys()]
+    .sort((a, b) => a - b)
+    .map((idx) => {
+      const group = groups.get(idx);
+      const element = { frontal_image_url: group.frontal };
+      if (group.angles.length) element.reference_image_urls = group.angles;
+      return element;
+    })
+    .filter((element) => element.frontal_image_url);
+}
+
 // The main event. Streams progress back as newline-delimited JSON so the UI can
 // show queue position instead of a dead spinner.
 app.post("/api/generate", async (req, res) => {
@@ -1511,8 +1547,18 @@ app.post("/api/generate", async (req, res) => {
       input.enable_prompt_expansion = false;
     }
     for (const spec of inputSpecs.values()) {
-      const values = normalizedAssets.filter((asset) => asset.field === spec.field).map((asset) => asset.url);
-      if (values.length) input[spec.field] = spec.arity === "multiple" ? values : values[0];
+      const fieldAssets = normalizedAssets.filter((asset) => asset.field === spec.field);
+      if (!fieldAssets.length) continue;
+      if (spec.item_type === "object") {
+        // Structured fields (Kling's `elements`) are an array of objects —
+        // one per character/object — not a flat list of URL strings. Group
+        // by element_index and shape each group the way fal documents it:
+        // a required frontal image plus 0-3 supporting angle images.
+        input[spec.field] = buildElementObjects(fieldAssets);
+      } else {
+        const values = fieldAssets.map((asset) => asset.url);
+        input[spec.field] = spec.arity === "multiple" ? values : values[0];
+      }
     }
     // never submit empty-string params, fal validates strictly
     for (const k of Object.keys(input)) {
@@ -1599,6 +1645,16 @@ app.post("/api/generate-kie", async (req, res) => {
   const kieKey = KIE_EQUIVALENTS[modelId];
   if (!kieKey) return res.status(400).json({ error: `${modelId} has no Kie equivalent` });
   if (!prompt) return res.status(400).json({ error: "prompt required" });
+  // buildKiePayload only ever consumes referenceUrls[0] — it has no way to
+  // represent multiple slots (start+end frame) or a structured field (Kling
+  // elements). Reject rather than silently drop everything but the first
+  // reference into a degraded request.
+  if (referenceUrls.length > 1) {
+    const label = byId.get(modelId)?.label ?? modelId;
+    return res.status(400).json({
+      error: `Kie only supports a single reference image per request. ${label} has ${referenceUrls.length} attached — switch to fal or remove references down to one.`,
+    });
+  }
 
   res.setHeader("Content-Type", "application/x-ndjson");
   res.setHeader("Cache-Control", "no-cache");

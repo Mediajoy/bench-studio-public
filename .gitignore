@@ -9,3 +9,5 @@ dist/
 playwright-report/
 test-results/
 handoff/
+.claude/
+graphify-out/

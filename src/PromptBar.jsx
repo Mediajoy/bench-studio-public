@@ -2,11 +2,15 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   assignInputFields,
+  formatPromptTag,
+  imageFieldOptions,
   imageInputFor,
+  inputSlotsFor,
   mediaInputsFor,
   modelKindLabel,
   modelLaneLabel,
   modelPriority,
+  remainingCapacity,
   sortModels,
 } from "./modelCatalog.js";
 
@@ -286,6 +290,139 @@ function MenuSelect({ value, options, onChange, placeholder, ariaLabel, classNam
   );
 }
 
+// One thumbnail + remove button + optional prompt-tag chip, shared by the
+// plain slots and the element cards below.
+function SlotThumb({ asset, index, onRemove, tag, onInsertTag }) {
+  const tagText = tag ? formatPromptTag(tag, index) : null;
+  return (
+    <span className="slot-thumb-wrap">
+      {asset.media_type === "image" ? (
+        <img className="slot-thumb" src={asset.preview} alt={asset.name} />
+      ) : (
+        <span className={`attach-file attach-file-${asset.media_type}`} title={asset.name}>
+          <b>{asset.media_type === "document" ? "PDF" : asset.media_type}</b>
+          <small>{asset.name}</small>
+        </span>
+      )}
+      <button type="button" className="attach-remove" onClick={onRemove} aria-label={`Remove ${asset.name}`} title="Remove">×</button>
+      {tagText && (
+        <button
+          type="button"
+          className="slot-tag"
+          onClick={() => onInsertTag(tagText)}
+          title={`Insert ${tagText} into the prompt — this reference does nothing unless the prompt names it`}
+        >
+          {tagText}
+        </button>
+      )}
+    </span>
+  );
+}
+
+// A plain (non-structured) named row: label, its attached thumbs, and a [+]
+// while there's still capacity. This is what makes a model's real inputs
+// visible before you ever attach anything, instead of a generic "+" that
+// silently auto-routes to whichever field is open.
+function SlotRow({ slot, assets, onOpenPicker, onRemove, onInsertTag, busy }) {
+  const full = assets.length >= slot.capacity;
+  const tag = slot.tagPrefix ? { tagPrefix: slot.tagPrefix, tagStyle: slot.tagStyle } : null;
+  return (
+    <div className="input-slot" title={slot.description || undefined}>
+      <div className="input-slot-head">
+        <span className="input-slot-label">{slot.label}</span>
+        {slot.required && assets.length === 0 && <span className="input-slot-required">Required</span>}
+      </div>
+      <div className="input-slot-body">
+        {assets.map((asset, i) => (
+          <SlotThumb
+            key={asset.url}
+            asset={asset}
+            index={i + 1}
+            tag={tag}
+            onInsertTag={onInsertTag}
+            onRemove={() => onRemove(asset)}
+          />
+        ))}
+        {!full && (
+          <button
+            type="button"
+            className="slot-add"
+            onClick={() => onOpenPicker(slot.field)}
+            disabled={busy}
+            aria-label={`Add ${slot.label}`}
+          >
+            +
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Kling's `elements` is the one structured field in the roster: an array of
+// character/object objects (one required frontal image, up to 3 supporting
+// angle images), addressed in the prompt as @Element1, @Element2... Each
+// element gets its own card rather than one flat thumbnail row.
+function ElementsSlot({ slot, assets, onOpenPicker, onRemove, onInsertTag, busy }) {
+  const groups = new Map();
+  for (const asset of assets) {
+    const idx = asset.element_index ?? 0;
+    if (!groups.has(idx)) groups.set(idx, { frontal: null, angles: [] });
+    const group = groups.get(idx);
+    if (asset.element_role === "frontal") group.frontal = asset;
+    else group.angles.push(asset);
+  }
+  const indices = [...groups.keys()].sort((a, b) => a - b);
+  const nextIndex = indices.length ? Math.max(...indices) + 1 : 0;
+  const tag = slot.tagPrefix ? { tagPrefix: slot.tagPrefix, tagStyle: slot.tagStyle } : null;
+
+  return (
+    <div className="input-slot input-slot-elements" title={slot.description || undefined}>
+      <div className="input-slot-head">
+        <span className="input-slot-label">{slot.label}</span>
+        <span className="input-slot-hint">Character or object — frontal + up to 3 angles</span>
+      </div>
+      <div className="element-cards">
+        {indices.map((idx) => {
+          const group = groups.get(idx);
+          return (
+            <div className="element-card" key={idx}>
+              <div className="element-card-head">
+                <span>Element {idx + 1}</span>
+                {tag && (
+                  <button type="button" className="slot-tag" onClick={() => onInsertTag(formatPromptTag(tag, idx + 1))}>
+                    {formatPromptTag(tag, idx + 1)}
+                  </button>
+                )}
+              </div>
+              <div className="element-card-body">
+                {group.frontal ? (
+                  <SlotThumb asset={group.frontal} index={idx + 1} onRemove={() => onRemove(group.frontal)} />
+                ) : (
+                  <button type="button" className="slot-add slot-add-frontal" disabled={busy} onClick={() => onOpenPicker(slot.field, idx, "frontal")}>
+                    + Frontal
+                  </button>
+                )}
+                {group.angles.map((asset) => (
+                  <SlotThumb key={asset.url} asset={asset} index={idx + 1} onRemove={() => onRemove(asset)} />
+                ))}
+                {group.frontal && group.angles.length < 3 && (
+                  <button type="button" className="slot-add" disabled={busy} onClick={() => onOpenPicker(slot.field, idx, "angle")}>
+                    + Angle
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        <button type="button" className="element-add" disabled={busy} onClick={() => onOpenPicker(slot.field, nextIndex, "frontal")}>
+          + Element
+        </button>
+      </div>
+    </div>
+  );
+}
+
 const PRICE_UNITS = {
   images: "image",
   megapixels: "megapixel",
@@ -533,10 +670,14 @@ function ModelPicker({ model, models, onChange, referenceActive, refs = [] }) {
 // Pick one or more starred archive results to reuse as fresh references,
 // instead of downloading and re-uploading through Finder. Fetches on open
 // so it always reflects the latest starred set.
-function StarredPicker({ onClose, onPick }) {
+function StarredPicker({ onClose, onPick, maxSelectable }) {
   const [rows, setRows] = useState(null);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
+  // Infinity means "no declared limit" — don't cap the picker or print a
+  // fabricated number, just let selection run free for those models.
+  const capped = maxSelectable != null && Number.isFinite(maxSelectable);
+  const atLimit = capped && selected.size >= maxSelectable;
 
   useEffect(() => {
     let dead = false;
@@ -547,19 +688,41 @@ function StarredPicker({ onClose, onPick }) {
     return () => { dead = true; };
   }, []);
 
-  function toggle(archiveId) {
+  // One selectable item per output, not per starred generation — a
+  // multi-output generation (num_images > 1) should offer every image, and
+  // an output whose local mirror never landed (asset.local_path null, the
+  // same thing store.missingOutputAssets() tracks) can't be reused since
+  // /api/reuse-output requires a real file on disk to re-upload.
+  const items = (rows ?? []).flatMap((row) =>
+    row.outputs.map((output, index) => ({
+      key: `${row.archive_id}:${index}`,
+      row,
+      output,
+      unavailable: !output.local_path,
+    }))
+  );
+
+  function toggle(key) {
     setSelected((current) => {
       const next = new Set(current);
-      if (next.has(archiveId)) next.delete(archiveId);
-      else next.add(archiveId);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        if (atLimit) return current;
+        next.add(key);
+      }
       return next;
     });
   }
 
   function confirm() {
-    const chosen = (rows ?? [])
-      .filter((row) => selected.has(row.archive_id))
-      .flatMap((row) => row.outputs.slice(0, 1).map((output) => ({ ...output, name: row.label })));
+    const chosen = items
+      .filter((item) => selected.has(item.key))
+      .map((item) => {
+        const [, outputIndex] = item.key.split(":");
+        const base = item.row.label || "reference";
+        return { ...item.output, name: item.row.outputs.length > 1 ? `${base}-${Number(outputIndex) + 1}` : base };
+      });
     if (chosen.length) onPick(chosen);
   }
 
@@ -570,6 +733,11 @@ function StarredPicker({ onClose, onPick }) {
           <strong>Starred results</strong>
           <button type="button" className="dropzone-close" onClick={onClose} aria-label="Close">Close</button>
         </div>
+        {capped && maxSelectable === 0 && (
+          <p className="starred-picker-empty">
+            The current model's image reference slot is already full. Remove an attached reference first.
+          </p>
+        )}
         {error && <p className="starred-picker-empty">{error}</p>}
         {!error && rows && !rows.length && (
           <p className="starred-picker-empty">
@@ -577,22 +745,29 @@ function StarredPicker({ onClose, onPick }) {
           </p>
         )}
         {!error && rows === null && <p className="starred-picker-empty">Loading…</p>}
-        {!error && rows && rows.length > 0 && (
+        {!error && rows && rows.length > 0 && !(capped && maxSelectable === 0) && (
           <>
             <div className="starred-picker-grid">
-              {rows.map((row) => {
-                const output = row.outputs[0];
-                if (!output) return null;
+              {items.map((item) => {
+                const { key, row, output, unavailable } = item;
                 const src = output.local_url || output.url;
                 const isVideo = String(output.content_type ?? "").startsWith("video");
-                const on = selected.has(row.archive_id);
+                const on = selected.has(key);
+                const disabled = unavailable || (!on && atLimit);
+                const title = unavailable
+                  ? "This result's local copy is missing, so it can't be reused as a reference."
+                  : disabled
+                  ? `This model only takes ${maxSelectable} reference image${maxSelectable === 1 ? "" : "s"}`
+                  : undefined;
                 return (
                   <button
                     type="button"
-                    key={row.archive_id}
-                    className={`starred-picker-item${on ? " on" : ""}`}
-                    onClick={() => toggle(row.archive_id)}
+                    key={key}
+                    className={`starred-picker-item${on ? " on" : ""}${unavailable ? " unavailable" : ""}`}
+                    onClick={() => toggle(key)}
                     aria-pressed={on}
+                    disabled={disabled}
+                    title={title}
                   >
                     {isVideo ? (
                       <video src={src} muted playsInline preload="metadata" />
@@ -605,7 +780,10 @@ function StarredPicker({ onClose, onPick }) {
               })}
             </div>
             <div className="starred-picker-foot">
-              <span>{selected.size} selected</span>
+              <span>
+                {selected.size} selected
+                {capped ? ` · ${Math.max(0, maxSelectable - selected.size)} more can fit` : ""}
+              </span>
               <button type="button" className="starred-picker-confirm" onClick={confirm} disabled={!selected.size}>
                 Attach {selected.size || ""}
               </button>
@@ -619,16 +797,99 @@ function StarredPicker({ onClose, onPick }) {
 
 export default function PromptBar({
   catalog, model, idea, setIdea, format, setFormat,
-  params, setParams, hide, refs, onAttach, onAttachFromArchive, onRemoveRef,
+  params, setParams, hide, refs, onAttach, onAttachFromArchive, onRemoveRef, onReassignRef,
   rewritten, setRewritten, onOptimize, onGenerate,
   quote, busy, running, onPickModel, referenceModel, shotSettings, setShotSettings,
   provider, setProvider,
 }) {
   const fileRef = useRef(null);
+  const ideaRef = useRef(null);
+  const rewrittenRef = useRef(null);
   const [openRewrite, setOpenRewrite] = useState(true);
   const [showDropzone, setShowDropzone] = useState(false);
   const [showStarredPicker, setShowStarredPicker] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [pendingAttach, setPendingAttach] = useState(null);
+  const [tagWarning, setTagWarning] = useState(null);
+
+  // This block (and the two effects below it) must stay ABOVE the
+  // `!catalog || !model` early return — every function here is null-safe
+  // (optional-chains through model/referenceModel), and hooks must run
+  // unconditionally on every render. Moving them below the guard means they
+  // silently skip while catalog is still loading, then start firing once it
+  // resolves — React sees a different hook count between renders and throws,
+  // which unmounts the whole component (the "flashes, then goes blank" bug).
+  const slotsModel = inputSlotsFor(model).length ? model : (referenceModel && inputSlotsFor(referenceModel).length ? referenceModel : null);
+  const slots = slotsModel ? inputSlotsFor(slotsModel) : [];
+  const showNamedSlots = slots.length > 1;
+  const slotAccept = (field) => {
+    const slot = slots.find((s) => s.field === field);
+    const modality = slot?.modality === "mixed" ? "image" : slot?.modality;
+    return {
+      image: "image/png,image/jpeg,image/webp,image/gif",
+      video: "video/mp4,video/quicktime",
+      audio: "audio/mpeg,audio/wav,audio/x-wav",
+      document: "application/pdf",
+    }[modality] ?? "";
+  };
+
+  function openSlotPicker(field, elementIndex, elementRole) {
+    setPendingAttach({ field, elementIndex, elementRole });
+    // Mutate the accept attribute directly — React's state update won't
+    // re-render before the file dialog opens, and the dialog needs the
+    // right filter the instant click() fires.
+    if (fileRef.current) fileRef.current.accept = slotAccept(field);
+    fileRef.current?.click();
+  }
+
+  function insertTag(text) {
+    const target = rewritten ? rewrittenRef.current : ideaRef.current;
+    const value = rewritten ? (rewritten.prompt ?? "") : idea;
+    const start = target ? target.selectionStart : value.length;
+    const end = target ? target.selectionEnd : value.length;
+    const spacer = start > 0 && value[start - 1] && !/\s/.test(value[start - 1]) ? " " : "";
+    const next = value.slice(0, start) + spacer + text + value.slice(end);
+    if (rewritten) setRewritten({ ...rewritten, prompt: next });
+    else setIdea(next);
+    const caret = start + spacer.length + text.length;
+    requestAnimationFrame(() => {
+      if (!target) return;
+      target.focus();
+      target.selectionStart = target.selectionEnd = caret;
+    });
+  }
+
+  // Every prompt tag ("@Image1", "Image 1"...) implied by what's currently
+  // attached — used to warn if a rewrite silently drops a reference the
+  // prompt named, since an unnamed reference is inert to the model.
+  const expectedTags = slots.flatMap((slot) => {
+    if (!slot.tagPrefix) return [];
+    const tag = { tagPrefix: slot.tagPrefix, tagStyle: slot.tagStyle };
+    const fieldRefs = refs.filter((r) => r.field === slot.field);
+    if (slot.structured) {
+      const indices = [...new Set(fieldRefs.map((r) => r.element_index ?? 0))].sort((a, b) => a - b);
+      return indices.map((idx) => formatPromptTag(tag, idx + 1));
+    }
+    return fieldRefs.map((_, i) => formatPromptTag(tag, i + 1));
+  });
+
+  // Kie's request builder only ever reads the first reference — if a 2nd
+  // attachment lands while Kie is selected (start+end frame, an Elements
+  // group), fall back to fal rather than leaving a doomed selection active.
+  useEffect(() => {
+    if (provider === "kie" && refs.length > 1) setProvider("fal");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refs.length, provider]);
+
+  useEffect(() => {
+    if (!rewritten?.prompt) { setTagWarning(null); return; }
+    const dropped = expectedTags.filter((tag) => idea.includes(tag) && !rewritten.prompt.includes(tag));
+    setTagWarning(dropped.length
+      ? `The rewrite dropped ${dropped.join(", ")} — add ${dropped.length === 1 ? "it" : "them"} back in if you still want that reference used.`
+      : null);
+    // Only re-check when the rewrite itself changes, not on every keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rewritten?.prompt]);
 
   if (!catalog || !model) {
     return (
@@ -669,6 +930,7 @@ export default function PromptBar({
     .split(/\s+/)
     .filter(Boolean).length;
   const canAttach = Boolean(imageInputFor(model) || referenceModel);
+  const imageTargetModel = imageInputFor(model) ? model : referenceModel;
   const directInputs = mediaInputsFor(model);
   const acceptedModalities = [...new Set(directInputs.map((input) => input.modality).filter((item) => item !== "mixed"))];
   if (!acceptedModalities.includes("image") && referenceModel) acceptedModalities.push("image");
@@ -685,6 +947,7 @@ export default function PromptBar({
     : acceptedLabel
     ? `This model accepts ${acceptedLabel}`
     : "Choose a compatible model first";
+
   const quickFormats = [
     { id: "ugc", label: "UGC ad" },
     { id: "none", label: "Freeform" },
@@ -697,7 +960,9 @@ export default function PromptBar({
 
   async function addFiles(fileList) {
     const files = Array.from(fileList ?? []);
-    for (const file of files) await onAttach(file);
+    const target = pendingAttach;
+    setPendingAttach(null);
+    for (const file of files) await onAttach(file, target ?? undefined);
   }
 
   return (
@@ -731,32 +996,79 @@ export default function PromptBar({
 
         <ShotDirection format={format} values={shotSettings} onChange={setShotSettings} />
 
+        {showNamedSlots && (
+          <div className="input-slots">
+            {slots.map((slot) =>
+              slot.structured ? (
+                <ElementsSlot
+                  key={slot.field}
+                  slot={slot}
+                  assets={refs.filter((r) => r.field === slot.field)}
+                  onOpenPicker={openSlotPicker}
+                  onRemove={(asset) => onRemoveRef(refs.indexOf(asset))}
+                  onInsertTag={insertTag}
+                  busy={busy}
+                />
+              ) : (
+                <SlotRow
+                  key={slot.field}
+                  slot={slot}
+                  assets={refs.filter((r) => r.field === slot.field)}
+                  onOpenPicker={(field) => openSlotPicker(field)}
+                  onRemove={(asset) => onRemoveRef(refs.indexOf(asset))}
+                  onInsertTag={insertTag}
+                  busy={busy}
+                />
+              )
+            )}
+          </div>
+        )}
+
         <div className="bar-top">
-          {refs.length > 0 && (
+          {!showNamedSlots && refs.length > 0 && (
             <div className="attach-thumbs">
-              {refs.map((r, i) => (
-                <span className="attach-thumb-wrap" key={r.url}>
-                  {r.media_type === "image" ? (
-                    <img className="attach-thumb" src={r.preview} alt={r.name} />
-                  ) : (
-                    <span className={`attach-file attach-file-${r.media_type}`} title={r.name}>
-                      <b>{r.media_type === "document" ? "PDF" : r.media_type}</b>
-                      <small>{r.name}</small>
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    className="attach-remove"
-                    onClick={() => onRemoveRef(i)}
-                    aria-label={`Remove ${r.name}`}
-                    title="Remove reference"
-                  >×</button>
-                </span>
-              ))}
+              {refs.map((r, i) => {
+                const roleModel = r.media_type === "image" ? imageTargetModel : model;
+                const fieldOptions = imageFieldOptions(roleModel, r.media_type);
+                const showRolePicker = onReassignRef && fieldOptions.length > 1;
+                const currentField = r.field ?? fieldOptions.find((o) => o.field === r.field)?.field;
+                const occupied = new Set(refs.filter((other) => other !== r).map((other) => other.field));
+                const roleOptions = fieldOptions
+                  .filter((option) => option.field === currentField || !occupied.has(option.field))
+                  .map((option) => ({ value: option.field, label: option.label }));
+                return (
+                  <span className="attach-thumb-wrap" key={r.url}>
+                    {r.media_type === "image" ? (
+                      <img className="attach-thumb" src={r.preview} alt={r.name} />
+                    ) : (
+                      <span className={`attach-file attach-file-${r.media_type}`} title={r.name}>
+                        <b>{r.media_type === "document" ? "PDF" : r.media_type}</b>
+                        <small>{r.name}</small>
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className="attach-remove"
+                      onClick={() => onRemoveRef(i)}
+                      aria-label={`Remove ${r.name}`}
+                      title="Remove reference"
+                    >×</button>
+                    {showRolePicker && (
+                      <MenuSelect
+                        value={currentField}
+                        options={roleOptions}
+                        ariaLabel={`Role for ${r.name}`}
+                        className="attach-role-menu"
+                        onChange={(field) => onReassignRef(i, field)}
+                      />
+                    )}
+                  </span>
+                );
+              })}
             </div>
           )}
 
-          {!showDropzone && (
+          {!showDropzone && !showNamedSlots && (
             <button
               type="button"
               className="attach"
@@ -800,6 +1112,7 @@ export default function PromptBar({
           />
 
           <textarea
+            ref={ideaRef}
             id="prompt-idea"
             name="prompt"
             value={idea}
@@ -887,6 +1200,7 @@ export default function PromptBar({
               onAttachFromArchive?.(outputs);
               setShowStarredPicker(false);
             }}
+            maxSelectable={imageTargetModel ? remainingCapacity(imageTargetModel, refs, "image") : 0}
           />
         )}
 
@@ -924,12 +1238,14 @@ export default function PromptBar({
                 type="button"
                 className={`provider-opt${provider === "kie" ? " on" : ""}`}
                 onClick={() => setProvider("kie")}
-                disabled={busy}
-                title={`${quote.kie.basis}\n${
-                  quote.kie.last_verified
-                    ? `Price last verified ${quote.kie.last_verified} (${quote.kie.verified_via})`
-                    : "Price provenance unknown — never confirmed against a live source"
-                }`}
+                disabled={busy || refs.length > 1}
+                title={refs.length > 1
+                  ? `Kie only supports one reference per request — ${refs.length} are attached. Remove references down to one, or use fal.`
+                  : `${quote.kie.basis}\n${
+                      quote.kie.last_verified
+                        ? `Price last verified ${quote.kie.last_verified} (${quote.kie.verified_via})`
+                        : "Price provenance unknown — never confirmed against a live source"
+                    }`}
               >
                 Kie ${quote.kie.cost.toFixed(3)}
                 {!quote.kie.last_verified ? <sup className="price-unverified">?</sup> : null}
@@ -994,12 +1310,14 @@ export default function PromptBar({
             <div className="rewrite-body">
               <label htmlFor="rewritten-prompt">Edit the wording before you generate.</label>
               <textarea
+                ref={rewrittenRef}
                 id="rewritten-prompt"
                 name="rewritten-prompt"
                 aria-label="Editable rewritten prompt"
                 value={rewritten.prompt}
                 onChange={(e) => setRewritten({ ...rewritten, prompt: e.target.value })}
               />
+              {tagWarning && <div className="tag-warning">{tagWarning}</div>}
               <div className="rewrite-foot">
                 <span>{rewriteWords} {rewriteWords === 1 ? "word" : "words"}</span>
                 <span>Your edits are used for the next generation.</span>

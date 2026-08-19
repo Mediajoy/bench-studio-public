@@ -22,6 +22,23 @@ function findNumber(description, patterns) {
   return null;
 }
 
+// A size limit phrased as "total size under 50 MB" / "combined ... 50 MB"
+// caps the sum across every item in the field. One phrased as "max 30 MB
+// per image" / "10 MB each" caps every item individually — summing those
+// against each other would reject perfectly valid multi-file attachments.
+// Default to per-item (the more common phrasing, and the safer assumption:
+// under-rejecting a combined cap is a fal-side 400, but over-rejecting a
+// per-item cap blocks a valid attach outright).
+function megabyteLimit(text) {
+  const combined = String(text ?? "").match(/(?:total\s+(?:size\s+)?|combined[^.]*?)under\s+(\d+)\s*mb/i)
+    ?? String(text ?? "").match(/combined[^.]*?(\d+)\s*mb/i);
+  if (combined) return { max_megabytes: Number(combined[1]), max_megabytes_combined: true };
+  const perItem = String(text ?? "").match(/max(?:imum)?\s*(?:size)?:?\s+(\d+)\s*mb/i)
+    ?? String(text ?? "").match(/under\s+(\d+)\s*mb/i);
+  if (perItem) return { max_megabytes: Number(perItem[1]), max_megabytes_combined: false };
+  return { max_megabytes: null, max_megabytes_combined: false };
+}
+
 function inferredLimits(input) {
   const text = input.description ?? "";
   return {
@@ -30,7 +47,7 @@ function inferredLimits(input) {
       /up to\s+(\d+)\s+(?:images?|videos?|audio files?|files?|references?|elements?)/i,
       /max(?:imum)?\s+(?:of\s+)?(\d+)\s+(?:images?|videos?|audio files?|files?|references?|elements?)/i,
     ]),
-    max_megabytes: findNumber(text, [/max(?:imum)?\s+(\d+)\s*mb/i, /under\s+(\d+)\s*mb/i]),
+    ...megabyteLimit(text),
     min_seconds: findNumber(text, [/(\d+)\s*(?:-|to)\s*\d+\s*seconds/i]),
     max_seconds: findNumber(text, [/(?:-|to)\s*(\d+)\s*seconds/i, /max(?:imum)?\s+(\d+)\s*seconds/i]),
   };

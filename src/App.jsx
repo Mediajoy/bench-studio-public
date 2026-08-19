@@ -6,7 +6,7 @@ import Work from "./Work.jsx";
 import Ledger from "./Ledger.jsx";
 import Tooling from "./Tooling.jsx";
 import CreativeStudio from "./CreativeStudio.jsx";
-import { assignInputFields, imageInputFor, mediaInputsFor, mediaTypeForFile, pairedImageModel, retainCompatibleAssets, sortModels } from "./modelCatalog.js";
+import { assignInputFields, imageInputFor, mediaInputsFor, mediaTypeForFile, pairedImageModel, remainingCapacity, retainCompatibleAssets, sortModels } from "./modelCatalog.js";
 
 function viewFromHash() {
   const view = window.location.hash.slice(1);
@@ -489,6 +489,20 @@ export default function App() {
     }
   }
 
+  // Re-run the full assignment with the requested field pinned on that one
+  // asset, so a manual pick still gets arity/limit validation (e.g. picking
+  // an already-occupied single-arity field fails cleanly) and roll back on
+  // conflict instead of leaving refs in a half-applied state.
+  function reassignRef(index, field) {
+    const current = refsRef.current;
+    if (!current[index]) return;
+    const next = current.map((asset, i) => (i === index ? { ...asset, field } : asset));
+    const assignment = assignInputFields(model, next);
+    if (!assignment.ok) return setError(assignment.reason);
+    refsRef.current = assignment.assets;
+    setRefs(assignment.assets);
+  }
+
   function targetModelFor(mediaType) {
     let targetModel = model;
     if (!mediaInputsFor(targetModel, mediaType).length && mediaType === "image" && referenceModel) {
@@ -497,11 +511,25 @@ export default function App() {
     if (!mediaInputsFor(targetModel, mediaType).length) {
       throw new Error(`${model?.label ?? "This model"} does not accept ${mediaType} input. Choose a compatible model first.`);
     }
+    // Check the slot is actually free before the caller uploads anything —
+    // assignInputFields would catch this too, but only after a real fal
+    // upload already happened. Checked against refsRef.current, not refs,
+    // so this stays correct mid-burst when several files attach in one go.
+    if (remainingCapacity(targetModel, refsRef.current, mediaType) <= 0) {
+      const probe = assignInputFields(targetModel, [...refsRef.current, { media_type: mediaType, url: "__probe__" }]);
+      throw new Error(probe.reason ?? `${targetModel.label}'s ${mediaType} input is already full. Remove an existing reference first.`);
+    }
     return targetModel;
   }
 
-  async function attach(file) {
+  // `target` is set when the file came from a named slot's own [+] (or an
+  // Element card's frontal/angle button) rather than the generic dropzone —
+  // it pins the asset's field (and, for Kling's Elements, which
+  // character/object group and role it belongs to) instead of letting
+  // assignInputFields auto-pick.
+  async function attach(file, target) {
     setBusy(true); setError(null);
+    let uploaded = false;
     try {
       const mediaType = mediaTypeForFile(file);
       if (mediaType === "file") throw new Error("Use an image, video, audio file, or PDF.");
@@ -509,6 +537,7 @@ export default function App() {
       const fd = new FormData();
       fd.append("file", file);
       const j = await readJson("/api/upload", { method: "POST", body: fd });
+      uploaded = true;
       if (j.error) throw new Error(j.error);
       const nextAsset = {
         ...j,
@@ -516,11 +545,17 @@ export default function App() {
         name: file.name,
         media_type: j.media_type ?? mediaType,
         preview: URL.createObjectURL(file),
+        ...(target?.field ? { field: target.field } : {}),
+        ...(target?.elementIndex != null ? { element_index: target.elementIndex } : {}),
+        ...(target?.elementRole ? { element_role: target.elementRole } : {}),
       };
       applyAttachedAsset(targetModel, nextAsset);
       setRefs(refsRef.current);
     } catch (e) {
-      const message = `Upload failed: ${e.message ?? e}`;
+      // Only call it an upload failure if a network upload actually ran —
+      // a rejected-before-upload slot conflict is a different kind of error
+      // and "Upload failed" would be misleading (and wrong: fal was never hit).
+      const message = uploaded ? `Upload failed: ${e.message ?? e}` : String(e.message ?? e);
       if (/exhausted balance|user is locked/i.test(message)) setFalLocked(true);
       setError(message);
     }
@@ -534,9 +569,13 @@ export default function App() {
   async function attachFromArchive(outputs) {
     if (!outputs?.length) return;
     setBusy(true); setError(null);
+    let attachedCount = 0;
     try {
       const targetModel = targetModelFor("image");
       for (const output of outputs) {
+        if (remainingCapacity(targetModel, refsRef.current, "image") <= 0) {
+          throw new Error(`${targetModel.label}'s image input is already full.`);
+        }
         const j = await readJson("/api/reuse-output", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -554,15 +593,27 @@ export default function App() {
           media_type: j.media_type ?? "image",
           preview: output.local_url ?? j.local_url,
         };
+        // A model with single-arity image input can only take the first of
+        // a multi-select batch — that is a real, expected stop, not a bug.
+        // Surface it as an informative "N attached, rest didn't fit" message
+        // rather than letting it read as a generic failure once caught below.
         applyAttachedAsset(targetModel, nextAsset);
+        attachedCount++;
       }
-      setRefs(refsRef.current);
     } catch (e) {
-      const message = `Could not attach starred result: ${e.message ?? e}`;
+      const remaining = outputs.length - attachedCount;
+      const message = attachedCount > 0
+        ? `Attached ${attachedCount} of ${outputs.length} — ${remaining} more didn't fit: ${e.message ?? e}`
+        : `Could not attach starred result: ${e.message ?? e}`;
       if (/exhausted balance|user is locked/i.test(message)) setFalLocked(true);
       setError(message);
+    } finally {
+      // Flush whatever succeeded even if a later item in the batch failed —
+      // losing an already-successful attach because the next one didn't fit
+      // would be worse than the partial-batch error above.
+      setRefs(refsRef.current);
+      setBusy(false);
     }
-    finally { setBusy(false); }
   }
 
   async function generate() {
@@ -590,7 +641,9 @@ export default function App() {
         } : {
           modelId, prompt, params, format, rawIdea: idea,
           shotSettings,
-          inputAssets: refs.map(({ url, field, media_type, upload_id, name }) => ({ url, field, media_type, upload_id, name })),
+          inputAssets: refs.map(({ url, field, media_type, upload_id, name, element_index, element_role }) => ({
+            url, field, media_type, upload_id, name, element_index, element_role,
+          })),
         }),
       });
 
@@ -706,6 +759,7 @@ export default function App() {
                       refsRef.current = next;
                       return next;
                     })}
+                    onReassignRef={reassignRef}
                     rewritten={rewritten}
                     setRewritten={setRewritten}
                     onOptimize={optimize}

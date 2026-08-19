@@ -595,6 +595,8 @@ p { text-wrap: pretty; }
 }
 .starred-picker-item img, .starred-picker-item video { width: 100%; height: 100%; object-fit: cover; display: block; }
 .starred-picker-item.on { border-color: #d97706; }
+.starred-picker-item:disabled { opacity: .35; cursor: not-allowed; }
+.starred-picker-item.unavailable { opacity: .25; filter: grayscale(1); }
 .starred-picker-check {
   position: absolute;
   top: 4px;
@@ -628,6 +630,56 @@ p { text-wrap: pretty; }
 .attach-file small { overflow: hidden; color: var(--text-2); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .attach-remove { position: absolute; top: -7px; right: -7px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 1px solid var(--line-bright); border-radius: 50%; background: #12151b; color: var(--text); font-size: 14px; font-weight: 500; line-height: 1; box-shadow: 0 3px 10px rgba(0,0,0,.35); }
 .attach-remove:hover { border-color: var(--danger); color: var(--danger); }
+.attach-role-menu { position: absolute; top: 100%; left: 0; z-index: 5; width: 46px; margin-top: 4px; }
+.attach-role-menu .menu-trigger { min-height: 0; width: 100%; padding: 2px 4px; border: 1px solid var(--line-bright); border-radius: 5px; background: #12151b; font-size: 8px; font-weight: 700; letter-spacing: .02em; }
+.attach-role-menu .menu-trigger span { overflow: hidden; text-overflow: ellipsis; }
+.attach-role-menu .menu-chevron { display: none; }
+.attach-role-menu .menu-popover { top: calc(100% + 4px); left: 0; min-width: 130px; }
+
+/* Named input slots — a model's real schema fields shown as labeled rows
+   before anything is attached, replacing the guess-and-check thumbnail flow
+   for any model with more than one image/video/audio input. */
+.input-slots { display: grid; gap: 8px; padding: 10px 12px; margin-bottom: 8px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--panel-soft); }
+.input-slot { display: grid; gap: 6px; }
+.input-slot-head { display: flex; align-items: center; gap: 8px; }
+.input-slot-label { font-size: 12px; font-weight: 700; color: var(--text-2); }
+.input-slot-required { padding: 1px 6px; border-radius: var(--r-full); background: rgba(217,119,6,.15); color: #d97706; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.input-slot-hint { color: var(--text-3); font-size: 11px; }
+.input-slot-body { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
+
+.slot-thumb-wrap { position: relative; display: block; width: 46px; height: 46px; }
+.slot-thumb { display: block; width: 100%; height: 100%; border: 1px solid var(--accent); border-radius: var(--r-sm); object-fit: cover; }
+.slot-tag {
+  position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+  padding: 1px 6px; border: 1px solid var(--accent); border-radius: var(--r-full);
+  background: #12151b; color: var(--accent); font-size: 9px; font-weight: 700;
+  white-space: nowrap; cursor: pointer;
+}
+.slot-tag:hover { background: var(--accent-soft); }
+
+.slot-add {
+  display: grid; place-items: center; width: 46px; height: 46px;
+  border: 1px dashed var(--line-bright); border-radius: var(--r-sm);
+  background: transparent; color: var(--text-3); font-size: 18px; line-height: 1;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.slot-add:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.slot-add:disabled { opacity: .4; cursor: not-allowed; }
+.slot-add-frontal { width: auto; padding: 0 10px; font-size: 11px; font-weight: 700; }
+
+.input-slot-elements .element-cards { display: flex; flex-wrap: wrap; gap: 10px; }
+.element-card { display: grid; gap: 6px; padding: 8px; border: 1px solid var(--line-bright); border-radius: var(--r-md); background: var(--panel-raised); }
+.element-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; font-weight: 700; color: var(--text-2); }
+.element-card-body { display: flex; flex-wrap: wrap; gap: 6px; }
+.element-add {
+  align-self: flex-start; padding: 10px 14px; border: 1px dashed var(--line-bright); border-radius: var(--r-md);
+  background: transparent; color: var(--text-3); font-size: 12px; font-weight: 700;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.element-add:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.element-add:disabled { opacity: .4; cursor: not-allowed; }
+
+.tag-warning { padding: 6px 10px; border: 1px solid rgba(217,119,6,.35); border-radius: var(--r-sm); background: rgba(217,119,6,.1); color: #d97706; font-size: 11px; }
 
 .bar textarea {
   flex: 1;
