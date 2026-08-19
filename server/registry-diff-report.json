@@ -1,14 +1,12 @@
 {
-  "generated_at": "2026-08-18T19:54:28.139Z",
-  "compared_against": "2026-08-18T18:49:24.019Z",
+  "generated_at": "2026-08-19T04:22:33.757Z",
+  "compared_against": "2026-08-19T04:13:11.998Z",
   "added": [],
   "removed": [],
   "changed": [
-    "bytedance/seedance-2.5/text-to-video",
-    "lightricks/ltx-2.5/image-to-video/fast",
-    "bytedance/seedance-2.5/image-to-video",
-    "minimax/h3/image-to-video",
-    "wan/v2.6/image-to-video"
+    "fal-ai/echomimic-v3",
+    "fal-ai/infinitalk",
+    "fal-ai/latentsync"
   ],
-  "unchanged_count": 34
+  "unchanged_count": 40
 }

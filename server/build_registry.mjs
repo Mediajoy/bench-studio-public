@@ -92,6 +92,21 @@ const ROSTER = [
   { id: "minimax/h3/reference-to-video",            kind: "video", lane: "r2v", label: "Hailuo H3 reference", vendor: "MiniMax" },
   { id: "fal-ai/wan/v2.7/reference-to-video",       kind: "video", lane: "r2v", label: "Wan 2.7 reference",  vendor: "Alibaba" },
   { id: "xai/grok-imagine-video/reference-to-video",kind: "video", lane: "r2v", label: "Grok reference",     vendor: "xAI" },
+
+  // --- talking-head / lip-sync / voice (PRD v5 Phase 2, Stage 3 grounding) ---
+  // Ported from shot-builder's own AV_MODELS_PATH curation (providers/av_models.json)
+  // — same four models it already treats as `permitted: true`, added here so
+  // voice_gen.py/talking_head_gen.py can route through Bench instead of calling
+  // fal directly. Schemas fetched live 2026-08-18 (PRD §1.1 grounding invariant).
+  // Licenses set explicitly (not left to DEFAULT_LICENSE) — verified against
+  // each project's own LICENSE file 2026-08-17, same evidence shot-builder's
+  // providers/av_models.json cites. Apache-2.0 isn't in PROHIBITED_LICENSES
+  // so this doesn't change what's reachable, but DEFAULT_LICENSE
+  // ("proprietary-api") would have been a wrong claim about these three.
+  { id: "fal-ai/echomimic-v3",                      kind: "video", lane: "talking-head", label: "EchoMimic v3", vendor: "Antgroup", license: "Apache-2.0" },
+  { id: "fal-ai/infinitalk",                        kind: "video", lane: "talking-head", label: "InfiniTalk",   vendor: "MeiGen-AI", license: "Apache-2.0" },
+  { id: "fal-ai/latentsync",                        kind: "video", lane: "talking-head", label: "LatentSync (lip-sync)", vendor: "ByteDance", license: "Apache-2.0" },
+  { id: "fal-ai/elevenlabs/tts/multilingual-v2",    kind: "audio", lane: "tts",          label: "ElevenLabs TTS", vendor: "ElevenLabs" },
 ];
 
 const SCHEMA_URL = (id) =>
@@ -113,6 +128,12 @@ const SURFACE = new Set([
   // models that rewrite your prompt for you. We already wrote it deliberately,
   // so this needs to be visible and off by default.
   "enable_prompt_expansion", "auto_fix",
+  // TTS (elevenlabs/tts/multilingual-v2): its own schema names the spoken
+  // content "text", not "prompt" — no model in the roster before this one
+  // had that shape. Surfaced as a plain param control rather than aliased
+  // into the prompt box, so nothing about the prompt-box pipeline needs to
+  // special-case a second field name.
+  "text", "voice",
 ]);
 
 // Endpoints do not agree on what the image parameter is called. Detect it

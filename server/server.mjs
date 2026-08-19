@@ -1478,7 +1478,13 @@ app.post("/api/generate", async (req, res) => {
   const { modelId, prompt, params = {}, referenceUrls = [], inputAssets = [], format = "none", rawIdea = null, shotSettings = {} } = req.body ?? {};
   const model = byId.get(modelId);
   if (!model) return res.status(400).json({ error: `unknown model ${modelId}` });
-  if (!prompt) return res.status(400).json({ error: "prompt required" });
+  // Every model in the roster required a prompt until the talking-head/lip-sync
+  // additions (PRD v5 Stage 3) — latentsync's own schema has no prompt field at
+  // all (it re-syncs an existing video's lips to new audio). Gate on what the
+  // model's live schema actually requires, not a blanket assumption.
+  if (!prompt && (model.required ?? []).includes("prompt")) {
+    return res.status(400).json({ error: "prompt required" });
+  }
 
   // PRD v5 Phase 3 — deprecation and format gates. Both are cheap, local
   // checks against data already in registry.json, so they run before any

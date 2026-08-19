@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generated_at": "2026-08-19T01:27:26.634Z",
-  "schema_generated_at": "2026-08-18T19:54:28.139Z",
+  "generated_at": "2026-08-19T04:22:44.702Z",
+  "schema_generated_at": "2026-08-19T04:22:33.757Z",
   "source": "fal.ai public OpenAPI queue schemas",
   "status_legend": {
     "schema-supported": "Declared by fal's live OpenAPI schema; not necessarily exercised.",
@@ -19,7 +19,7 @@
       "lane": "t2i",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:14.503Z",
+      "last_verified": "2026-08-19T04:22:19.361Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -36,7 +36,7 @@
       "lane": "t2i",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:14.773Z",
+      "last_verified": "2026-08-19T04:22:19.615Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -53,7 +53,7 @@
       "lane": "t2i",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:15.104Z",
+      "last_verified": "2026-08-19T04:22:19.861Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -70,7 +70,7 @@
       "lane": "t2i",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:15.359Z",
+      "last_verified": "2026-08-19T04:22:20.104Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -87,7 +87,7 @@
       "lane": "t2i",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:15.614Z",
+      "last_verified": "2026-08-19T04:22:20.394Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -104,7 +104,7 @@
       "lane": "t2i",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:16.270Z",
+      "last_verified": "2026-08-19T04:22:20.785Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -121,7 +121,7 @@
       "lane": "t2i",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:16.541Z",
+      "last_verified": "2026-08-19T04:22:21.204Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -138,7 +138,7 @@
       "lane": "t2i",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:16.780Z",
+      "last_verified": "2026-08-19T04:22:21.519Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -155,7 +155,7 @@
       "lane": "t2i",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:17.041Z",
+      "last_verified": "2026-08-19T04:22:21.951Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -172,7 +172,7 @@
       "lane": "i2i",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:17.278Z",
+      "last_verified": "2026-08-19T04:22:22.489Z",
       "inputs": [
         {
           "field": "image_urls",
@@ -195,7 +195,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
@@ -217,7 +217,7 @@
       "lane": "i2i",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:17.664Z",
+      "last_verified": "2026-08-19T04:22:22.737Z",
       "inputs": [
         {
           "field": "image_urls",
@@ -240,57 +240,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
-            }
-          ]
-        },
-        {
-          "field": "video_url",
-          "modality": "video",
-          "role": "source",
-          "arity": "single",
-          "required": false,
-          "description": "Optional video to use as input context. Accepts an http(s)/data URL to a video file (downloaded and sent inline, max 15MB) or a YouTube URL (passed through to the model without downloading).",
-          "accepted_type": "string",
-          "item_type": null,
-          "limits": {
-            "min_items": null,
-            "max_items": null,
-            "max_megabytes": 15,
-            "max_megabytes_combined": false,
-            "min_seconds": null,
-            "max_seconds": null
-          },
-          "provenance": [
-            {
-              "source": "fal-openapi",
-              "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
-            }
-          ]
-        },
-        {
-          "field": "audio_url",
-          "modality": "audio",
-          "role": "source",
-          "arity": "single",
-          "required": false,
-          "description": "Optional audio file to use as input context. Accepts an http(s)/data URL (downloaded and sent inline, max 15MB).",
-          "accepted_type": "string",
-          "item_type": null,
-          "limits": {
-            "min_items": null,
-            "max_items": null,
-            "max_megabytes": 15,
-            "max_megabytes_combined": false,
-            "min_seconds": null,
-            "max_seconds": null
-          },
-          "provenance": [
-            {
-              "source": "fal-openapi",
-              "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         },
@@ -315,16 +265,66 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
+            }
+          ]
+        },
+        {
+          "field": "video_url",
+          "modality": "video",
+          "role": "source",
+          "arity": "single",
+          "required": false,
+          "description": "Optional video to use as input context. Accepts an http(s)/data URL to a video file (downloaded and sent inline, max 15MB) or a YouTube URL (passed through to the model without downloading).",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": 15,
+            "max_megabytes_combined": false,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-19T04:22:33.757Z"
+            }
+          ]
+        },
+        {
+          "field": "audio_url",
+          "modality": "audio",
+          "role": "source",
+          "arity": "single",
+          "required": false,
+          "description": "Optional audio file to use as input context. Accepts an http(s)/data URL (downloaded and sent inline, max 15MB).",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": 15,
+            "max_megabytes_combined": false,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
       ],
       "modalities": [
         "image",
+        "document",
         "video",
-        "audio",
-        "document"
+        "audio"
       ],
       "primary_image_field": "image_urls",
       "image_arity": "multiple",
@@ -340,7 +340,7 @@
       "lane": "i2i",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:17.939Z",
+      "last_verified": "2026-08-19T04:22:23.014Z",
       "inputs": [
         {
           "field": "mask_url",
@@ -363,7 +363,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         },
@@ -388,7 +388,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
@@ -410,7 +410,7 @@
       "lane": "i2i",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:18.379Z",
+      "last_verified": "2026-08-19T04:22:23.539Z",
       "inputs": [
         {
           "field": "image_urls",
@@ -433,7 +433,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
@@ -455,7 +455,7 @@
       "lane": "i2i",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:18.603Z",
+      "last_verified": "2026-08-19T04:22:23.817Z",
       "inputs": [
         {
           "field": "image_urls",
@@ -478,7 +478,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
@@ -500,7 +500,7 @@
       "lane": "i2i",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:18.891Z",
+      "last_verified": "2026-08-19T04:22:24.243Z",
       "inputs": [
         {
           "field": "image_urls",
@@ -523,7 +523,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
@@ -545,7 +545,7 @@
       "lane": "t2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:19.111Z",
+      "last_verified": "2026-08-19T04:22:24.586Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -562,7 +562,7 @@
       "lane": "t2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:19.479Z",
+      "last_verified": "2026-08-19T04:22:24.832Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -579,7 +579,7 @@
       "lane": "t2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:19.916Z",
+      "last_verified": "2026-08-19T04:22:25.094Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -596,7 +596,7 @@
       "lane": "t2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:20.225Z",
+      "last_verified": "2026-08-19T04:22:25.360Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -613,7 +613,7 @@
       "lane": "t2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:20.813Z",
+      "last_verified": "2026-08-19T04:22:26.085Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -630,7 +630,7 @@
       "lane": "t2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:21.657Z",
+      "last_verified": "2026-08-19T04:22:26.417Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -647,7 +647,7 @@
       "lane": "t2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:22.168Z",
+      "last_verified": "2026-08-19T04:22:26.786Z",
       "inputs": [
         {
           "field": "audio_url",
@@ -670,7 +670,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
@@ -692,7 +692,7 @@
       "lane": "t2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:22.415Z",
+      "last_verified": "2026-08-19T04:22:27.077Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -709,7 +709,7 @@
       "lane": "t2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:22.680Z",
+      "last_verified": "2026-08-19T04:22:27.321Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -726,7 +726,7 @@
       "lane": "t2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:22.930Z",
+      "last_verified": "2026-08-19T04:22:27.732Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -743,7 +743,7 @@
       "lane": "t2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:23.602Z",
+      "last_verified": "2026-08-19T04:22:28.015Z",
       "inputs": [],
       "modalities": [],
       "primary_image_field": null,
@@ -760,7 +760,7 @@
       "lane": "i2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:23.856Z",
+      "last_verified": "2026-08-19T04:22:28.309Z",
       "inputs": [
         {
           "field": "image_url",
@@ -783,7 +783,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         },
@@ -808,7 +808,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
@@ -830,7 +830,7 @@
       "lane": "i2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:24.204Z",
+      "last_verified": "2026-08-19T04:22:28.779Z",
       "inputs": [
         {
           "field": "end_image_url",
@@ -853,7 +853,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         },
@@ -878,7 +878,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         },
@@ -903,7 +903,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
@@ -926,7 +926,7 @@
       "lane": "i2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:24.523Z",
+      "last_verified": "2026-08-19T04:22:29.031Z",
       "inputs": [
         {
           "field": "image_url",
@@ -949,7 +949,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         },
@@ -974,7 +974,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
@@ -996,7 +996,7 @@
       "lane": "i2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:25.109Z",
+      "last_verified": "2026-08-19T04:22:29.371Z",
       "inputs": [
         {
           "field": "image_url",
@@ -1019,7 +1019,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         },
@@ -1044,7 +1044,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
@@ -1066,7 +1066,7 @@
       "lane": "i2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:25.539Z",
+      "last_verified": "2026-08-19T04:22:29.828Z",
       "inputs": [
         {
           "field": "image_url",
@@ -1089,7 +1089,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         },
@@ -1114,7 +1114,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
@@ -1137,7 +1137,7 @@
       "lane": "i2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:25.844Z",
+      "last_verified": "2026-08-19T04:22:30.073Z",
       "inputs": [
         {
           "field": "image_url",
@@ -1160,7 +1160,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
@@ -1182,7 +1182,7 @@
       "lane": "i2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:26.160Z",
+      "last_verified": "2026-08-19T04:22:30.457Z",
       "inputs": [
         {
           "field": "image_url",
@@ -1205,7 +1205,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
@@ -1227,33 +1227,8 @@
       "lane": "i2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:26.412Z",
+      "last_verified": "2026-08-19T04:22:30.877Z",
       "inputs": [
-        {
-          "field": "last_frame_url",
-          "modality": "image",
-          "role": "end-frame",
-          "arity": "single",
-          "required": true,
-          "description": "URL of the last frame of the video",
-          "accepted_type": "string",
-          "item_type": null,
-          "limits": {
-            "min_items": null,
-            "max_items": null,
-            "max_megabytes": null,
-            "max_megabytes_combined": false,
-            "min_seconds": null,
-            "max_seconds": null
-          },
-          "provenance": [
-            {
-              "source": "fal-openapi",
-              "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
-            }
-          ]
-        },
         {
           "field": "first_frame_url",
           "modality": "image",
@@ -1275,7 +1250,32 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
+            }
+          ]
+        },
+        {
+          "field": "last_frame_url",
+          "modality": "image",
+          "role": "end-frame",
+          "arity": "single",
+          "required": true,
+          "description": "URL of the last frame of the video",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "max_megabytes_combined": false,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
@@ -1297,7 +1297,7 @@
       "lane": "r2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:26.675Z",
+      "last_verified": "2026-08-19T04:22:31.107Z",
       "inputs": [
         {
           "field": "image_urls",
@@ -1320,7 +1320,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
@@ -1342,21 +1342,21 @@
       "lane": "r2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:27.126Z",
+      "last_verified": "2026-08-19T04:22:31.637Z",
       "inputs": [
         {
-          "field": "image_urls",
-          "modality": "image",
+          "field": "audio_urls",
+          "modality": "audio",
           "role": "source",
           "arity": "multiple",
           "required": false,
-          "description": "Reference images to guide video generation. Refer to them in the prompt as @Image1, @Image2, etc. Supported formats: JPEG, PNG, WebP. Max 30 MB per image. Up to 9 images. Total files across all modalities must not exceed 12.",
+          "description": "Reference audio to guide video generation. Refer to them in the prompt as @Audio1, @Audio2, etc. Supported formats: MP3, WAV. Up to 3 files, combined duration must not exceed 15 seconds. Max 15 MB per file.If audio is provided, at least one reference image or video is required.",
           "accepted_type": "array",
           "item_type": "string",
           "limits": {
             "min_items": null,
-            "max_items": 9,
-            "max_megabytes": 30,
+            "max_items": 3,
+            "max_megabytes": 15,
             "max_megabytes_combined": false,
             "min_seconds": null,
             "max_seconds": null
@@ -1365,7 +1365,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         },
@@ -1390,23 +1390,23 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         },
         {
-          "field": "audio_urls",
-          "modality": "audio",
+          "field": "image_urls",
+          "modality": "image",
           "role": "source",
           "arity": "multiple",
           "required": false,
-          "description": "Reference audio to guide video generation. Refer to them in the prompt as @Audio1, @Audio2, etc. Supported formats: MP3, WAV. Up to 3 files, combined duration must not exceed 15 seconds. Max 15 MB per file.If audio is provided, at least one reference image or video is required.",
+          "description": "Reference images to guide video generation. Refer to them in the prompt as @Image1, @Image2, etc. Supported formats: JPEG, PNG, WebP. Max 30 MB per image. Up to 9 images. Total files across all modalities must not exceed 12.",
           "accepted_type": "array",
           "item_type": "string",
           "limits": {
             "min_items": null,
-            "max_items": 3,
-            "max_megabytes": 15,
+            "max_items": 9,
+            "max_megabytes": 30,
             "max_megabytes_combined": false,
             "min_seconds": null,
             "max_seconds": null
@@ -1415,15 +1415,15 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
       ],
       "modalities": [
-        "image",
+        "audio",
         "video",
-        "audio"
+        "image"
       ],
       "primary_image_field": "image_urls",
       "image_arity": "multiple",
@@ -1439,33 +1439,8 @@
       "lane": "r2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:27.472Z",
+      "last_verified": "2026-08-19T04:22:31.933Z",
       "inputs": [
-        {
-          "field": "reference_image_urls",
-          "modality": "image",
-          "role": "reference",
-          "arity": "multiple",
-          "required": false,
-          "description": "URLs of subject/style reference images, referenced in the prompt as Image 1, Image 2, and so on. Reference images, videos, and audio clips must add up to at most 12 files.",
-          "accepted_type": "array",
-          "item_type": "string",
-          "limits": {
-            "min_items": null,
-            "max_items": 9,
-            "max_megabytes": null,
-            "max_megabytes_combined": false,
-            "min_seconds": null,
-            "max_seconds": null
-          },
-          "provenance": [
-            {
-              "source": "fal-openapi",
-              "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
-            }
-          ]
-        },
         {
           "field": "reference_video_urls",
           "modality": "video",
@@ -1487,7 +1462,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         },
@@ -1512,15 +1487,40 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
+            }
+          ]
+        },
+        {
+          "field": "reference_image_urls",
+          "modality": "image",
+          "role": "reference",
+          "arity": "multiple",
+          "required": false,
+          "description": "URLs of subject/style reference images, referenced in the prompt as Image 1, Image 2, and so on. Reference images, videos, and audio clips must add up to at most 12 files.",
+          "accepted_type": "array",
+          "item_type": "string",
+          "limits": {
+            "min_items": null,
+            "max_items": 9,
+            "max_megabytes": null,
+            "max_megabytes_combined": false,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
       ],
       "modalities": [
-        "image",
         "video",
-        "audio"
+        "audio",
+        "image"
       ],
       "primary_image_field": "reference_image_urls",
       "image_arity": "multiple",
@@ -1536,33 +1536,8 @@
       "lane": "r2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:27.858Z",
+      "last_verified": "2026-08-19T04:22:32.361Z",
       "inputs": [
-        {
-          "field": "reference_video_urls",
-          "modality": "video",
-          "role": "reference",
-          "arity": "multiple",
-          "required": false,
-          "description": "Reference video URLs for character/object appearance and motion. Pass multiple videos for multi-subject generation. Max 100 MB each.",
-          "accepted_type": "array",
-          "item_type": "string",
-          "limits": {
-            "min_items": null,
-            "max_items": null,
-            "max_megabytes": 100,
-            "max_megabytes_combined": false,
-            "min_seconds": null,
-            "max_seconds": null
-          },
-          "provenance": [
-            {
-              "source": "fal-openapi",
-              "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
-            }
-          ]
-        },
         {
           "field": "reference_image_urls",
           "modality": "image",
@@ -1584,14 +1559,39 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
+            }
+          ]
+        },
+        {
+          "field": "reference_video_urls",
+          "modality": "video",
+          "role": "reference",
+          "arity": "multiple",
+          "required": false,
+          "description": "Reference video URLs for character/object appearance and motion. Pass multiple videos for multi-subject generation. Max 100 MB each.",
+          "accepted_type": "array",
+          "item_type": "string",
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": 100,
+            "max_megabytes_combined": false,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
       ],
       "modalities": [
-        "video",
-        "image"
+        "image",
+        "video"
       ],
       "primary_image_field": "reference_image_urls",
       "image_arity": "multiple",
@@ -1607,7 +1607,7 @@
       "lane": "r2v",
       "license": "proprietary-api",
       "deprecated_after": null,
-      "last_verified": "2026-08-18T19:54:28.139Z",
+      "last_verified": "2026-08-19T04:22:32.624Z",
       "inputs": [
         {
           "field": "reference_image_urls",
@@ -1630,7 +1630,7 @@
             {
               "source": "fal-openapi",
               "status": "schema-supported",
-              "checked_at": "2026-08-18T19:54:28.139Z"
+              "checked_at": "2026-08-19T04:22:33.757Z"
             }
           ]
         }
@@ -1643,6 +1643,236 @@
       "prompt_profile": true,
       "researched_input_evidence": "reference_image_urls is an array of up to 7 image URLs, addressed in the prompt as @Image1, @Image2 ... in array order. They act as style and content references that influence the generation without being forced as the first frame. xAI's own framing is that each reference locks one element (a face, a product, a location), which lets you hold one and vary the others. This is the multi-subject compositing tool of the set; it is not a pixel-faithful first-frame animator.",
       "confidence": "schema-supported"
+    },
+    {
+      "model_id": "fal-ai/echomimic-v3",
+      "label": "EchoMimic v3",
+      "vendor": "Antgroup",
+      "output": "video",
+      "lane": "talking-head",
+      "license": "Apache-2.0",
+      "deprecated_after": null,
+      "last_verified": "2026-08-19T04:22:32.974Z",
+      "inputs": [
+        {
+          "field": "image_url",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "The URL of the image to use as a reference for the video generation.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "max_megabytes_combined": false,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-19T04:22:33.757Z"
+            }
+          ]
+        },
+        {
+          "field": "audio_url",
+          "modality": "audio",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "The URL of the audio to use as a reference for the video generation.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "max_megabytes_combined": false,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-19T04:22:33.757Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image",
+        "audio"
+      ],
+      "primary_image_field": "image_url",
+      "image_arity": "single",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "fal-ai/infinitalk",
+      "label": "InfiniTalk",
+      "vendor": "MeiGen-AI",
+      "output": "video",
+      "lane": "talking-head",
+      "license": "Apache-2.0",
+      "deprecated_after": null,
+      "last_verified": "2026-08-19T04:22:33.199Z",
+      "inputs": [
+        {
+          "field": "image_url",
+          "modality": "image",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "URL of the input image. If the input image does not match the chosen aspect ratio, it is resized and center cropped.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "max_megabytes_combined": false,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-19T04:22:33.757Z"
+            }
+          ]
+        },
+        {
+          "field": "audio_url",
+          "modality": "audio",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "The URL of the audio file.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "max_megabytes_combined": false,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-19T04:22:33.757Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "image",
+        "audio"
+      ],
+      "primary_image_field": "image_url",
+      "image_arity": "single",
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "fal-ai/latentsync",
+      "label": "LatentSync (lip-sync)",
+      "vendor": "ByteDance",
+      "output": "video",
+      "lane": "talking-head",
+      "license": "Apache-2.0",
+      "deprecated_after": null,
+      "last_verified": "2026-08-19T04:22:33.457Z",
+      "inputs": [
+        {
+          "field": "audio_url",
+          "modality": "audio",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "The URL of the audio to generate the lip sync for.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "max_megabytes_combined": false,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-19T04:22:33.757Z"
+            }
+          ]
+        },
+        {
+          "field": "video_url",
+          "modality": "video",
+          "role": "source",
+          "arity": "single",
+          "required": true,
+          "description": "The URL of the video to generate the lip sync for.",
+          "accepted_type": "string",
+          "item_type": null,
+          "limits": {
+            "min_items": null,
+            "max_items": null,
+            "max_megabytes": null,
+            "max_megabytes_combined": false,
+            "min_seconds": null,
+            "max_seconds": null
+          },
+          "provenance": [
+            {
+              "source": "fal-openapi",
+              "status": "schema-supported",
+              "checked_at": "2026-08-19T04:22:33.757Z"
+            }
+          ]
+        }
+      ],
+      "modalities": [
+        "audio",
+        "video"
+      ],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-supported"
+    },
+    {
+      "model_id": "fal-ai/elevenlabs/tts/multilingual-v2",
+      "label": "ElevenLabs TTS",
+      "vendor": "ElevenLabs",
+      "output": "audio",
+      "lane": "tts",
+      "license": "proprietary-api",
+      "deprecated_after": null,
+      "last_verified": "2026-08-19T04:22:33.757Z",
+      "inputs": [],
+      "modalities": [],
+      "primary_image_field": null,
+      "image_arity": null,
+      "prompt_profile": false,
+      "researched_input_evidence": null,
+      "confidence": "schema-reports-no-media-input"
     }
   ]
 }

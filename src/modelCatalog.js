@@ -1,6 +1,7 @@
 export const MODEL_KIND_LABELS = {
   image: "Image",
   video: "Video",
+  audio: "Audio",
 };
 
 export const MODEL_LANE_LABELS = {
@@ -9,6 +10,8 @@ export const MODEL_LANE_LABELS = {
   t2v: "Text to video",
   i2v: "Image to video",
   r2v: "Reference to video",
+  "talking-head": "Talking head / lip-sync",
+  tts: "Text to speech",
 };
 
 // A small editorial order for the first screen of the picker. This is not a
