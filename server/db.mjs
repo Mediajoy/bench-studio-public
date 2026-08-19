@@ -13,6 +13,37 @@ function entryKey(row) {
     .digest("hex")}`;
 }
 
+// Canonical form for a client tag — a slug, not free text. This is what lets
+// shot-builder's project slugs (workspace/projects/<slug>/) and Bench's own
+// client tags refer to the same client without a separate mapping step, and
+// stops "Grace Church" / "grace church" / "grace-church" from becoming three
+// different clients. Display name is prettified from the slug in the UI;
+// there's no separate display-name column to keep in sync.
+export function normalizeClient(value) {
+  if (value == null) return null;
+  const slug = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 64);
+  return slug || null;
+}
+
+// Three-state client filter shared by every read path that can be scoped to
+// a client, so they can't drift from each other:
+//   undefined/null -> no filter (today's behavior, backward compatible)
+//   "__none__"     -> only untagged rows (client IS NULL)
+//   any other value -> only that client's rows (normalized first)
+// Returns null (no predicate) or { sql, args } for the caller to AND/WHERE in.
+function clientPredicate(client) {
+  if (client === undefined || client === null) return null;
+  if (client === "__none__") return { sql: "client IS NULL", args: [] };
+  return { sql: "client = ?", args: [normalizeClient(client)] };
+}
+
 export function createStore({ dbPath, legacyLedgerPath }) {
   const db = new DatabaseSync(dbPath);
   db.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA synchronous = NORMAL;");
@@ -31,7 +62,8 @@ export function createStore({ dbPath, legacyLedgerPath }) {
       cost REAL,
       cost_confidence TEXT,
       payload_json TEXT NOT NULL,
-      starred INTEGER NOT NULL DEFAULT 0
+      starred INTEGER NOT NULL DEFAULT 0,
+      client TEXT
     );
     CREATE INDEX IF NOT EXISTS generations_ts_idx ON generations(ts DESC);
     CREATE INDEX IF NOT EXISTS generations_model_idx ON generations(model_id, ts DESC);
@@ -124,11 +156,20 @@ export function createStore({ dbPath, legacyLedgerPath }) {
   }
   db.exec("CREATE INDEX IF NOT EXISTS generations_starred_idx ON generations(starred, ts DESC)");
 
+  // Same retrofit pattern as starred above — client was added after this
+  // table already existed on disk for real users.
+  const hasClientColumn = db.prepare("PRAGMA table_info(generations)").all()
+    .some((col) => col.name === "client");
+  if (!hasClientColumn) {
+    db.exec("ALTER TABLE generations ADD COLUMN client TEXT");
+  }
+  db.exec("CREATE INDEX IF NOT EXISTS generations_client_idx ON generations(client, ts DESC)");
+
   const insertGeneration = db.prepare(`
     INSERT INTO generations (
       entry_key, request_id, ts, model_id, label, vendor, kind, lane, format,
-      cost, cost_confidence, payload_json
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      cost, cost_confidence, payload_json, client
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(entry_key) DO UPDATE SET
       request_id=excluded.request_id,
       ts=excluded.ts,
@@ -140,7 +181,8 @@ export function createStore({ dbPath, legacyLedgerPath }) {
       format=excluded.format,
       cost=excluded.cost,
       cost_confidence=excluded.cost_confidence,
-      payload_json=excluded.payload_json
+      payload_json=excluded.payload_json,
+      client=COALESCE(excluded.client, generations.client)
   `);
   const findGeneration = db.prepare("SELECT id FROM generations WHERE entry_key = ?");
   const insertAsset = db.prepare(`
@@ -173,6 +215,7 @@ export function createStore({ dbPath, legacyLedgerPath }) {
       Number.isFinite(Number(row.cost)) ? Number(row.cost) : null,
       row.cost_confidence ?? null,
       JSON.stringify(row),
+      normalizeClient(row.client),
     );
     const generationId = Number(findGeneration.get(key).id);
     (row.outputs ?? []).forEach((output, position) => {
@@ -225,6 +268,10 @@ export function createStore({ dbPath, legacyLedgerPath }) {
       ...payload,
       archive_id: Number(record.id),
       starred: Boolean(record.starred),
+      // The column wins over whatever's in the stale payload_json copy —
+      // otherwise renameClient() would silently not show in the UI while
+      // being correct in the DB (payload_json still holds the old name).
+      client: record.client ?? null,
       outputs: assets.map((asset) => ({
         url: asset.remote_url,
         remote_url: asset.remote_url,
@@ -237,13 +284,21 @@ export function createStore({ dbPath, legacyLedgerPath }) {
     };
   }
 
-  function listGenerations(limit = 200) {
-    const rows = db.prepare("SELECT * FROM generations ORDER BY ts DESC LIMIT ?").all(limit);
+  function listGenerations(limit = 200, client = undefined) {
+    const pred = clientPredicate(client);
+    const sql = pred
+      ? `SELECT * FROM generations WHERE ${pred.sql} ORDER BY ts DESC LIMIT ?`
+      : "SELECT * FROM generations ORDER BY ts DESC LIMIT ?";
+    const rows = db.prepare(sql).all(...(pred?.args ?? []), limit);
     return rows.map(generationRow);
   }
 
-  function listStarred(limit = 100) {
-    const rows = db.prepare("SELECT * FROM generations WHERE starred = 1 ORDER BY ts DESC LIMIT ?").all(limit);
+  function listStarred(limit = 100, client = undefined) {
+    const pred = clientPredicate(client);
+    const sql = pred
+      ? `SELECT * FROM generations WHERE starred = 1 AND ${pred.sql} ORDER BY ts DESC LIMIT ?`
+      : "SELECT * FROM generations WHERE starred = 1 ORDER BY ts DESC LIMIT ?";
+    const rows = db.prepare(sql).all(...(pred?.args ?? []), limit);
     return rows.map(generationRow);
   }
 
@@ -253,6 +308,37 @@ export function createStore({ dbPath, legacyLedgerPath }) {
     db.prepare("UPDATE generations SET starred = ? WHERE id = ?").run(starred ? 1 : 0, numericId);
     const record = db.prepare("SELECT * FROM generations WHERE id = ?").get(numericId);
     return record ? generationRow(record) : null;
+  }
+
+  function setClient(id, client) {
+    const numericId = Number(id);
+    if (!Number.isInteger(numericId) || numericId < 1) return null;
+    db.prepare("UPDATE generations SET client = ? WHERE id = ?").run(normalizeClient(client), numericId);
+    const record = db.prepare("SELECT * FROM generations WHERE id = ?").get(numericId);
+    return record ? generationRow(record) : null;
+  }
+
+  function listClients() {
+    const rows = db.prepare(`
+      SELECT client, COUNT(*) n, MAX(ts) last_ts, COALESCE(SUM(cost), 0) spend
+      FROM generations GROUP BY client ORDER BY last_ts DESC
+    `).all();
+    return rows.map((row) => ({
+      client: row.client ?? null,
+      n: Number(row.n),
+      last_ts: row.last_ts,
+      spend: Number(Number(row.spend).toFixed(4)),
+    }));
+  }
+
+  function renameClient(from, to) {
+    const fromSlug = normalizeClient(from);
+    const toSlug = normalizeClient(to);
+    if (!toSlug) throw new Error("renameClient: 'to' must not be empty");
+    const pred = fromSlug ? "client = ?" : "client IS NULL";
+    const args = fromSlug ? [toSlug, fromSlug] : [toSlug];
+    const result = db.prepare(`UPDATE generations SET client = ? WHERE ${pred}`).run(...args);
+    return { from: fromSlug, to: toSlug, updated: Number(result.changes) };
   }
 
   function deleteGeneration(id) {
@@ -273,19 +359,24 @@ export function createStore({ dbPath, legacyLedgerPath }) {
     };
   }
 
-  function spendSummary() {
+  function spendSummary(client = undefined) {
     const now = new Date();
     const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const all = db.prepare(`
-      SELECT COUNT(*) total_generations,
-             COALESCE(SUM(cost), 0) all_time,
-             SUM(CASE WHEN cost IS NULL THEN 1 ELSE 0 END) unpriced
-      FROM generations
-    `).get();
-    const month = db.prepare(`
-      SELECT COUNT(*) month_generations, COALESCE(SUM(cost), 0) month
-      FROM generations WHERE substr(ts, 1, 7) = ?
-    `).get(ym);
+    const pred = clientPredicate(client);
+    const allSql = pred
+      ? `SELECT COUNT(*) total_generations, COALESCE(SUM(cost), 0) all_time,
+                SUM(CASE WHEN cost IS NULL THEN 1 ELSE 0 END) unpriced
+         FROM generations WHERE ${pred.sql}`
+      : `SELECT COUNT(*) total_generations, COALESCE(SUM(cost), 0) all_time,
+                SUM(CASE WHEN cost IS NULL THEN 1 ELSE 0 END) unpriced
+         FROM generations`;
+    const all = db.prepare(allSql).get(...(pred?.args ?? []));
+    const monthSql = pred
+      ? `SELECT COUNT(*) month_generations, COALESCE(SUM(cost), 0) month
+         FROM generations WHERE substr(ts, 1, 7) = ? AND ${pred.sql}`
+      : `SELECT COUNT(*) month_generations, COALESCE(SUM(cost), 0) month
+         FROM generations WHERE substr(ts, 1, 7) = ?`;
+    const month = db.prepare(monthSql).get(ym, ...(pred?.args ?? []));
     return {
       month: Number(Number(month.month).toFixed(4)),
       all_time: Number(Number(all.all_time).toFixed(4)),
@@ -439,6 +530,9 @@ export function createStore({ dbPath, legacyLedgerPath }) {
     listGenerations,
     listStarred,
     setStarred,
+    setClient,
+    listClients,
+    renameClient,
     deleteGeneration,
     spendSummary,
     recordUpload,

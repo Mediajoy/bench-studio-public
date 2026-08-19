@@ -522,12 +522,12 @@ function appendLedger(row) {
   return store.addGeneration(row);
 }
 
-function readLedger() {
-  return store.listGenerations(500);
+function readLedger(client) {
+  return store.listGenerations(500, client);
 }
 
-function spendSummary() {
-  return store.spendSummary();
+function spendSummary(client) {
+  return store.spendSummary(client);
 }
 
 // ---------------------------------------------------------------- prompt optimizer
@@ -1296,11 +1296,15 @@ app.get("/api/kie-pricing", (_req, res) => {
   res.json({ rows });
 });
 
-app.get("/api/ledger", (_req, res) => {
+app.get("/api/ledger", (req, res) => {
   // SQLite already returns newest first. Reversing this made the Results tab
   // and ledger lead with the oldest work, burying the generation just made.
-  const rows = readLedger().slice(0, 200);
-  res.json({ rows, summary: spendSummary() });
+  // Filtering by client happens in SQL, before this slice — filtering a
+  // pre-sliced 200-row window client-side would silently hide an older
+  // client's work once the archive grows past that window.
+  const client = req.query.client || undefined;
+  const rows = readLedger(client).slice(0, 200);
+  res.json({ rows, summary: spendSummary(client), client: client ?? null });
 });
 
 app.delete("/api/results/:id", (req, res) => {
@@ -1353,8 +1357,32 @@ app.post("/api/results/:id/star", (req, res) => {
   res.json(updated);
 });
 
-app.get("/api/results/starred", (_req, res) => {
-  res.json({ rows: store.listStarred() });
+// Backfill path for generations made before client tagging existed, and the
+// everyday way to correct a mis-tagged one.
+app.patch("/api/results/:id/client", (req, res) => {
+  const updated = store.setClient(req.params.id, req.body?.client ?? null);
+  if (!updated) return res.status(404).json({ error: "Result not found" });
+  res.json(updated);
+});
+
+app.get("/api/results/starred", (req, res) => {
+  // Scoped to the active client so a church shoot never gets offered the
+  // salon's starred reference plates in the picker.
+  const client = req.query.client || undefined;
+  res.json({ rows: store.listStarred(100, client) });
+});
+
+app.get("/api/clients", (_req, res) => {
+  res.json({ rows: store.listClients() });
+});
+
+app.post("/api/clients/rename", (req, res) => {
+  const { from, to } = req.body ?? {};
+  try {
+    res.json(store.renameClient(from, to));
+  } catch (e) {
+    res.status(400).json({ error: String(e.message ?? e) });
+  }
 });
 
 app.post("/api/reload", (_req, res) => { reloadKnowledge(); res.json({ ok: true, profiles: Object.keys(PROFILES).length }); });
@@ -1475,7 +1503,7 @@ function buildElementObjects(fieldAssets) {
 // The main event. Streams progress back as newline-delimited JSON so the UI can
 // show queue position instead of a dead spinner.
 app.post("/api/generate", async (req, res) => {
-  const { modelId, prompt, params = {}, referenceUrls = [], inputAssets = [], format = "none", rawIdea = null, shotSettings = {}, dryRun = false } = req.body ?? {};
+  const { modelId, prompt, params = {}, referenceUrls = [], inputAssets = [], format = "none", rawIdea = null, shotSettings = {}, dryRun = false, client = null } = req.body ?? {};
   const model = byId.get(modelId);
   if (!model) return res.status(400).json({ error: `unknown model ${modelId}` });
   // Every model in the roster required a prompt until the talking-head/lip-sync
@@ -1579,7 +1607,7 @@ app.post("/api/generate", async (req, res) => {
     // gates and payload-building, only falSubmit()'s cost). Every gate above
     // this point still runs for real; only the paid network call is skipped.
     if (dryRun) {
-      send({ phase: "dry-run", input, estimate: pre });
+      send({ phase: "dry-run", input, estimate: pre, client });
       return res.end();
     }
 
@@ -1627,9 +1655,13 @@ app.post("/api/generate", async (req, res) => {
       billable_units: billableUnits,
       estimated_cost: pre.cost,
       outputs,
+      client,
     };
     appendLedger(row);
 
+    // Global usage stays global on purpose — it's an account-wide figure and
+    // shouldn't jump around as the active client filter changes. Per-client
+    // spend is what /api/ledger?client= and /api/clients show instead.
     send({ phase: "done", result, ledger: row, spend: spendSummary() });
     res.end();
   } catch (e) {
@@ -1656,7 +1688,7 @@ function extractUrls(result) {
 // selected fal model has a mapped Kie counterpart, so modelId here is
 // always a fal ID we translate, not a raw Kie model name.
 app.post("/api/generate-kie", async (req, res) => {
-  const { modelId, prompt, params = {}, referenceUrls = [], rawIdea = null } = req.body ?? {};
+  const { modelId, prompt, params = {}, referenceUrls = [], rawIdea = null, client = null } = req.body ?? {};
   if (!KIE_API_KEY) return res.status(400).json({ error: "no KIE_API_KEY configured" });
   const kieKey = KIE_EQUIVALENTS[modelId];
   if (!kieKey) return res.status(400).json({ error: `${modelId} has no Kie equivalent` });
@@ -1710,6 +1742,7 @@ app.post("/api/generate-kie", async (req, res) => {
       billable_units: null,
       estimated_cost: pre?.cost ?? null,
       outputs,
+      client,
     };
     appendLedger(row);
 
