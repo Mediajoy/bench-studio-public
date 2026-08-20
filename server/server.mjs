@@ -56,6 +56,7 @@ loadEnv();
 const FAL_KEY = process.env.FAL_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const KIE_API_KEY = process.env.KIE_API_KEY;
+const WAVESPEED_API_KEY = process.env.WAVESPEED_API_KEY;
 if (!FAL_KEY) {
   console.error("No FAL_KEY in ~/.env. Add one from fal.ai/dashboard/keys and restart.");
   process.exit(1);
@@ -453,6 +454,42 @@ const KIE_EQUIVALENTS = {
   "bytedance/seedance-2.5/image-to-video": "bytedance/seedance-2-5",
 };
 
+// Wavespeed (wavespeed.ai) — third provider option alongside fal and Kie.
+// Unlike Kie, Wavespeed publishes a real per-model parameter table AND
+// validates request bodies server-side: an unrecognized or missing field
+// gets a 400 naming exactly what's wrong, instead of Kie's silent-drop
+// behavior that caused the nano-banana-pro edit incident. That does not
+// mean field names here are any less load-bearing to verify — it means a
+// mistake fails loudly (a 400) instead of silently (a wrong image) — a much
+// better failure mode, but still a real one to get right the first time.
+//
+// Pricing confirmed 2026-08-19 via wavespeed.ai/docs/docs-api/google/*.
+// Wavespeed splits generate vs edit into two separate model paths (not one
+// model with an optional reference field, like Kie's nano-banana-pro) —
+// buildWavespeedPayload picks the path based on whether a reference is
+// attached.
+const WAVESPEED_PRICING = {
+  "google/nano-banana-pro": {
+    kind: "image",
+    image_1k_2k: 0.14,
+    image_4k: 0.24,
+    last_verified: "2026-08-19",
+    verified_via: "docs + live validation probe (field names confirmed via a real 400 response, not a completed generation)",
+    source_url: "https://wavespeed.ai/docs/docs-api/google/google-nano-banana-pro-edit",
+  },
+};
+
+// Only the models with a Wavespeed pricing entry above and a genuinely
+// comparable fal counterpart. Mirrors KIE_EQUIVALENTS' nano-banana-pro
+// mapping exactly, since that's the one model verified on both providers —
+// extend this the same deliberate, doc-verified way before adding more.
+const WAVESPEED_EQUIVALENTS = {
+  "fal-ai/nano-banana-2": "google/nano-banana-pro",
+  "fal-ai/nano-banana-2/edit": "google/nano-banana-pro",
+  "fal-ai/nano-banana-pro": "google/nano-banana-pro",
+  "fal-ai/nano-banana-pro/edit": "google/nano-banana-pro",
+};
+
 function estimateKieCost(modelId, params) {
   const kieKey = KIE_EQUIVALENTS[modelId];
   if (!kieKey) return null;
@@ -484,6 +521,27 @@ function estimateKieCost(modelId, params) {
     verified_via: spec.verified_via,
     source_url: spec.source_url,
   };
+}
+
+function estimateWavespeedCost(modelId, params) {
+  const wsKey = WAVESPEED_EQUIVALENTS[modelId];
+  if (!wsKey) return null;
+  const spec = WAVESPEED_PRICING[wsKey];
+  if (!spec) return null;
+
+  if (spec.kind === "image") {
+    const resolution = params.resolution ?? "1k";
+    const cost = resolution === "4k" ? spec.image_4k : spec.image_1k_2k;
+    return {
+      cost: Number(cost.toFixed(4)),
+      model: wsKey,
+      basis: `flat @ $${cost}/image (${resolution})`,
+      last_verified: spec.last_verified,
+      verified_via: spec.verified_via,
+      source_url: spec.source_url,
+    };
+  }
+  return null; // no video models mapped yet
 }
 
 function durationSeconds(modelId, params) {
@@ -836,36 +894,76 @@ async function falPoll(modelId, requestId, { onUpdate } = {}) {
 
 const KIE_BASE = "https://api.kie.ai";
 
-async function kieCreateTask(model, input) {
-  const res = await fetch(`${KIE_BASE}/api/v1/jobs/createTask`, {
+// Most Kie models go through this generic job envelope — POST
+// {model, input} to /api/v1/jobs/createTask, poll /api/v1/jobs/recordInfo,
+// read state/status as a string. veo-3.1 does NOT: it has its own
+// /api/v1/veo/generate + /api/v1/veo/record-info pair with a flat request
+// body (no "input" wrapper) and a numeric successFlag instead of a state
+// string (confirmed 2026-08-19 via docs.kie.ai/veo3-api/quickstart). Any
+// future model with its own dedicated endpoint (Runway is already known to
+// have one: /api/v1/runway/generate) needs the same treatment — check
+// docs.kie.ai/market/<vendor>/<slug> before assuming the generic shape.
+function kieGenericStatus(data) {
+  const state = String(data.state ?? data.status ?? "").toLowerCase();
+  if (state === "success" || state === "completed") return "success";
+  if (state === "fail" || state === "failed") return "failed";
+  return "pending";
+}
+
+function kieVeoStatus(data) {
+  // 0=generating, 1=success, 2=failed, 3=generation failed
+  const flag = Number(data.successFlag);
+  if (flag === 1) return "success";
+  if (flag === 2 || flag === 3) return "failed";
+  return "pending";
+}
+
+async function kieCreateTask({ endpoint = "/api/v1/jobs/createTask", body }) {
+  // Kie ignores unknown fields rather than rejecting them, so a misnamed
+  // field is invisible from the response alone — log the exact outgoing
+  // payload so a silently-dropped reference is diagnosable from the server
+  // output instead of only from a wrong-looking result.
+  console.log(`kie createTask -> POST ${endpoint} body=${JSON.stringify(body)}`);
+  const res = await fetch(`${KIE_BASE}${endpoint}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${KIE_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ model, input }),
+    body: JSON.stringify(body),
   });
-  const body = await res.json().catch(() => ({}));
-  const taskId = body?.data?.taskId;
-  if (!taskId) throw new Error(`Kie createTask failed (code=${body?.code}): ${body?.msg ?? body?.message ?? "no error message"}`);
+  const respBody = await res.json().catch(() => ({}));
+  const taskId = respBody?.data?.taskId;
+  if (!taskId) throw new Error(`Kie createTask failed (code=${respBody?.code}): ${respBody?.msg ?? respBody?.message ?? "no error message"}`);
   return taskId;
 }
 
-async function kiePollTask(taskId, { onUpdate, intervalMs = 4000, timeoutMs = 8 * 60 * 1000 } = {}) {
+async function kiePollTask(taskId, { pollPath = "/api/v1/jobs/recordInfo", statusOf = kieGenericStatus, onUpdate, intervalMs = 4000, timeoutMs = 8 * 60 * 1000 } = {}) {
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
-    const res = await fetch(`${KIE_BASE}/api/v1/jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`, {
+    const res = await fetch(`${KIE_BASE}${pollPath}?taskId=${encodeURIComponent(taskId)}`, {
       headers: { Authorization: `Bearer ${KIE_API_KEY}` },
     });
     const body = await res.json().catch(() => ({}));
     const data = body?.data ?? {};
-    const state = String(data.state ?? data.status ?? "").toLowerCase();
-    onUpdate?.(state);
-    if (state === "success" || state === "completed") return data;
-    if (state === "fail" || state === "failed") throw new Error(`Kie task failed: ${data.failMsg ?? data.error ?? "unknown error"}`);
+    const status = statusOf(data);
+    onUpdate?.(status);
+    if (status === "success") return data;
+    if (status === "failed") throw new Error(`Kie task failed: ${data.failMsg ?? data.errorMessage ?? data.error ?? "unknown error"}`);
     await new Promise((r) => setTimeout(r, intervalMs));
   }
   throw new Error("Kie task timed out");
 }
 
 function kieExtractUrl(data) {
+  // veo-3.1's record-info response puts the result directly on `data` as
+  // `resultUrls`, either a JSON-encoded string or (per some Kie endpoints)
+  // already an array — confirmed shape uses a string, but accept both
+  // rather than assume.
+  if (data?.resultUrls !== undefined) {
+    let parsed = data.resultUrls;
+    if (typeof parsed === "string") {
+      try { parsed = JSON.parse(parsed); } catch { parsed = null; }
+    }
+    if (Array.isArray(parsed) && parsed[0]) return parsed[0];
+  }
   const raw = data?.resultJson;
   if (typeof raw === "string" && raw) {
     try {
@@ -882,29 +980,100 @@ function kieExtractUrl(data) {
   throw new Error(`No artifact URL in Kie response: ${JSON.stringify(data).slice(0, 300)}`);
 }
 
-// Builds Kie's {model, input} payload for the handful of models mapped in
-// KIE_EQUIVALENTS. Kie's schema is per-model and does not match fal's param
-// names 1:1 (aspectRatio vs aspect_ratio, string vs number duration, etc.) —
-// this only needs to cover the mapped models, not fal's whole catalog.
-function buildKiePayload(kieKey, { prompt, params = {}, referenceUrl = null }) {
+const KIE_JOBS_CREATE = "/api/v1/jobs/createTask";
+const KIE_JOBS_POLL = "/api/v1/jobs/recordInfo";
+
+// Builds the exact request to send Kie for the handful of models mapped in
+// KIE_EQUIVALENTS. Kie's schema is per-model, does not match fal's param
+// names 1:1, and — critically — does not always use the same endpoint or
+// even the same request/response envelope (veo-3.1 has its own dedicated
+// pair, confirmed below; Runway is known to as well). Kie also silently
+// DROPS unrecognized fields instead of erroring, so a wrong field name
+// doesn't fail loudly — it just quietly produces a degraded or unrelated
+// result. Every field/endpoint here must be checked against
+// docs.kie.ai/market/<vendor>/<slug> (or the model-specific quickstart)
+// before trusting it; do not extrapolate one model's shape onto another.
+//
+// Returns { model, body, endpoint, pollPath, statusOf } — `body` is the
+// complete, ready-to-send request body (already wrapped in {model, input}
+// where that's the required shape); the caller POSTs it as-is.
+function buildKiePayload(kieKey, { modelId, prompt, params = {}, referenceUrl = null }) {
   const spec = KIE_PRICING[kieKey];
   if (!spec) throw new Error(`no Kie pricing/shape entry for ${kieKey}`);
 
+  if (kieKey === "veo-3.1") {
+    // NOT the generic jobs/createTask shape: dedicated endpoint, flat body
+    // (no "input" wrapper), numeric successFlag instead of a state string.
+    // Confirmed 2026-08-19 via docs.kie.ai/veo3-api/quickstart and
+    // .../generate-veo-3-video. "veo-3.1" itself is not a valid Kie model
+    // value — the real values are quality tiers ("veo3", "veo3_fast",
+    // "veo3_lite"); KIE_EQUIVALENTS collapses every veo3.1 fal endpoint to
+    // this one kieKey and loses the tier, so it's recovered here from
+    // modelId instead.
+    const veoModel = /fast/i.test(modelId ?? "") ? "veo3_fast" : "veo3";
+    const body = { model: veoModel, prompt, aspect_ratio: params.aspect_ratio ?? "16:9" };
+    if (referenceUrl) {
+      body.imageUrls = [referenceUrl];
+      body.generationType = "REFERENCE_2_VIDEO";
+    }
+    return { model: veoModel, body, endpoint: "/api/v1/veo/generate", pollPath: "/api/v1/veo/record-info", statusOf: kieVeoStatus };
+  }
+
   if (spec.kind === "image") {
-    const input = { prompt };
-    if (params.aspect_ratio) input.aspectRatio = params.aspect_ratio;
-    if (referenceUrl) input.referenceImages = [referenceUrl];
-    return { model: kieKey, input };
+    if (kieKey === "nano-banana-pro") {
+      // Schema confirmed 2026-08-19 at docs.kie.ai/market/google/pro-image-to-image:
+      // input = { prompt, image_input[<=8 uris], aspect_ratio, resolution,
+      // output_format }. Note snake_case — the earlier code sent `aspectRatio`
+      // and `referenceImages`, both silently ignored (confirmed live
+      // 2026-08-19: an edit request came back as a completely unrelated
+      // person). The model name is the same for generate and edit; supplying
+      // image_input is what makes it an edit.
+      const input = { prompt };
+      if (params.aspect_ratio) input.aspect_ratio = params.aspect_ratio;
+      if (referenceUrl) input.image_input = [referenceUrl];
+      return { model: kieKey, body: { model: kieKey, input }, endpoint: KIE_JOBS_CREATE, pollPath: KIE_JOBS_POLL, statusOf: kieGenericStatus };
+    }
+    if (kieKey === "flux-2") {
+      // Schema confirmed 2026-08-19 at docs.kie.ai/market/flux2/pro-image-to-image.
+      // Model must be "flux-2/pro-image-to-image" — bare "flux-2" (what
+      // KIE_PRICING keys this entry as) is not a valid model value on its
+      // own. Not reachable from the UI today (nothing in KIE_EQUIVALENTS
+      // maps to it), fixed now so it isn't a second landmine for whoever
+      // wires it up next.
+      const model = "flux-2/pro-image-to-image";
+      const input = { prompt };
+      if (params.aspect_ratio) input.aspect_ratio = params.aspect_ratio;
+      if (referenceUrl) input.input_urls = [referenceUrl];
+      return { model, body: { model, input }, endpoint: KIE_JOBS_CREATE, pollPath: KIE_JOBS_POLL, statusOf: kieGenericStatus };
+    }
+    if (kieKey === "4o-image") {
+      // Schema confirmed 2026-08-19 at docs.kie.ai/market/gpt/gpt-image-2-image-to-image.
+      // Kie's catalog moved on from "4o-image" naming entirely — the real
+      // model value is "gpt-image-2-image-to-image". Also not reachable
+      // from the UI today.
+      const model = "gpt-image-2-image-to-image";
+      const input = { prompt };
+      if (params.aspect_ratio) input.aspect_ratio = params.aspect_ratio;
+      if (referenceUrl) input.input_urls = [referenceUrl];
+      return { model, body: { model, input }, endpoint: KIE_JOBS_CREATE, pollPath: KIE_JOBS_POLL, statusOf: kieGenericStatus };
+    }
+    throw new Error(`buildKiePayload: no verified request shape for image model "${kieKey}" — check docs.kie.ai/market/ before adding one`);
   }
 
   // video
   const duration = String(params.duration ?? 5);
   const withAudio = params.generate_audio === true || params.generate_audio === "true";
   if (kieKey.startsWith("kling")) {
+    // Schema confirmed 2026-08-19 at docs.kie.ai/market/kling/image-to-video:
+    // the reference field is `image_urls` (array), not `image_url` — the
+    // singular name meant every kling-2.6 reference image was silently
+    // dropped, the same failure mode as nano-banana-pro. There is also no
+    // aspect_ratio field on this endpoint; the previous code sent one and
+    // Kie just discarded it.
     const model = `${kieKey}/${referenceUrl ? "image-to-video" : "text-to-video"}`;
-    const input = { prompt, duration, aspect_ratio: params.aspect_ratio ?? "16:9", sound: withAudio };
-    if (referenceUrl) input.image_url = referenceUrl;
-    return { model, input };
+    const input = { prompt, duration, sound: withAudio };
+    if (referenceUrl) input.image_urls = [referenceUrl];
+    return { model, body: { model, input }, endpoint: KIE_JOBS_CREATE, pollPath: KIE_JOBS_POLL, statusOf: kieGenericStatus };
   }
   if (kieKey === "bytedance/seedance-2-5") {
     // Confirmed live shape 2026-08-18: snake_case fields, duration as int
@@ -919,12 +1088,99 @@ function buildKiePayload(kieKey, { prompt, params = {}, referenceUrl = null }) {
       return_last_frame: false,
     };
     if (referenceUrl) input.reference_image_urls = [referenceUrl];
-    return { model: kieKey, input };
+    return { model: kieKey, body: { model: kieKey, input }, endpoint: KIE_JOBS_CREATE, pollPath: KIE_JOBS_POLL, statusOf: kieGenericStatus };
   }
-  const input = { prompt, duration: Number(duration), aspectRatio: params.aspect_ratio ?? "16:9" };
-  if (referenceUrl) input.imageUrl = referenceUrl;
-  if (withAudio) input.withAudio = true;
-  return { model: kieKey, input };
+  // Runway and sora-2 are confirmed to need their OWN dedicated endpoints —
+  // Runway: POST /api/v1/runway/generate with a flat body, no "input"
+  // wrapper (docs.kie.ai/runway-api/generate-ai-video); sora-2: model
+  // values like "sora-2-image-to-video", never a bare "sora-2"
+  // (docs.kie.ai/market/sora2/...). Neither is reachable from the UI today
+  // (no KIE_EQUIVALENTS entry maps to either), and neither has a verified
+  // branch here yet — throw rather than fall through to a shape already
+  // known to be wrong for them. Build a dedicated branch (same pattern as
+  // veo-3.1 above) before adding either to KIE_EQUIVALENTS.
+  throw new Error(`buildKiePayload: no verified request shape for video model "${kieKey}" — it needs its own endpoint, not the generic fallback`);
+}
+
+const WAVESPEED_BASE = "https://api.wavespeed.ai";
+
+// Builds the request for the handful of Wavespeed models mapped in
+// WAVESPEED_EQUIVALENTS. Same discipline as buildKiePayload: every field
+// name here must be checked against wavespeed.ai/docs/docs-api/<vendor>/<slug>
+// before trusting it, even though a mistake here fails loudly (Wavespeed
+// validates) rather than silently (Kie doesn't).
+//
+// Returns { model, body, endpoint } — the model ID goes directly in the URL
+// path on Wavespeed (POST /api/v3/{model}), not in the body the way Kie's
+// {model, input} envelope works, so `body` here is just the input fields.
+function buildWavespeedPayload(wsKey, { prompt, params = {}, referenceUrl = null }) {
+  const spec = WAVESPEED_PRICING[wsKey];
+  if (!spec) throw new Error(`no Wavespeed pricing/shape entry for ${wsKey}`);
+
+  if (wsKey === "google/nano-banana-pro") {
+    // Schema confirmed 2026-08-19 via wavespeed.ai/docs/docs-api/google/
+    // google-nano-banana-pro-edit and .../google-nano-banana-pro-text-to-image,
+    // plus a live validation probe (empty body against /edit correctly
+    // returned a 400 naming "images" as required — not a guess). Edit and
+    // text-to-image are separate model paths here, unlike Kie's single
+    // nano-banana-pro model with an optional reference field. The edit
+    // endpoint's reference field is `images` (an array, required, up to 14
+    // items) — not `image`, `image_url`, or Kie's `image_input`.
+    const model = referenceUrl ? "google/nano-banana-pro/edit" : "google/nano-banana-pro/text-to-image";
+    const body = { prompt };
+    if (params.aspect_ratio) body.aspect_ratio = params.aspect_ratio;
+    if (params.resolution) body.resolution = params.resolution;
+    if (referenceUrl) body.images = [referenceUrl];
+    return { model, body, endpoint: `/api/v3/${model}` };
+  }
+  throw new Error(`buildWavespeedPayload: no verified request shape for "${wsKey}" — check wavespeed.ai/docs/docs-api/ before adding one`);
+}
+
+async function wavespeedCreateTask({ endpoint, body }) {
+  // Wavespeed validates and rejects unrecognized/missing fields with a 400
+  // naming the problem field, unlike Kie — but still log the outgoing body,
+  // since a field that IS recognized but behaves unexpectedly (accepted,
+  // wrong result) wouldn't show up as an error either.
+  console.log(`wavespeed createTask -> POST ${endpoint} body=${JSON.stringify(body)}`);
+  const res = await fetch(`${WAVESPEED_BASE}${endpoint}`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${WAVESPEED_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const respBody = await res.json().catch(() => ({}));
+  const taskId = respBody?.data?.id;
+  // Wavespeed returns the exact URL to poll in the submission response
+  // (data.urls.get) rather than requiring the caller to construct it from a
+  // task ID the way Kie's /api/v1/jobs/recordInfo?taskId=... does — follow
+  // what it hands back instead of hand-building a path.
+  const pollUrl = respBody?.data?.urls?.get;
+  if (!taskId || !pollUrl) {
+    throw new Error(`Wavespeed createTask failed (code=${respBody?.code}): ${respBody?.message ?? "no error message"}`);
+  }
+  return { taskId, pollUrl };
+}
+
+async function wavespeedPollTask(pollUrl, { onUpdate, intervalMs = 3000, timeoutMs = 8 * 60 * 1000 } = {}) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const res = await fetch(pollUrl, { headers: { Authorization: `Bearer ${WAVESPEED_API_KEY}` } });
+    const body = await res.json().catch(() => ({}));
+    const data = body?.data ?? {};
+    const status = String(data.status ?? "").toLowerCase();
+    onUpdate?.(status);
+    if (status === "completed") return data;
+    if (status === "failed" || status === "cancelled" || status === "timeout") {
+      throw new Error(`Wavespeed task ${status}: ${data.error || "unknown error"}`);
+    }
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  throw new Error("Wavespeed task timed out");
+}
+
+function wavespeedExtractUrl(data) {
+  const outputs = data?.outputs;
+  if (Array.isArray(outputs) && outputs[0]) return outputs[0];
+  throw new Error(`No artifact URL in Wavespeed response: ${JSON.stringify(data).slice(0, 300)}`);
 }
 
 async function falUpload(buffer, filename, contentType) {
@@ -1274,7 +1530,8 @@ app.post("/api/quote", (req, res) => {
   if (!byId.has(modelId)) return res.status(400).json({ error: `unknown model ${modelId}` });
   const fal = estimateCost(modelId, params);
   const kie = estimateKieCost(modelId, params);
-  res.json(kie ? { ...fal, kie } : fal);
+  const wavespeed = estimateWavespeedCost(modelId, params);
+  res.json({ ...fal, ...(kie ? { kie } : {}), ...(wavespeed ? { wavespeed } : {}) });
 });
 
 // Every Kie model this app knows how to price/generate against, with its
@@ -1714,7 +1971,7 @@ function extractUrls(result) {
 // selected fal model has a mapped Kie counterpart, so modelId here is
 // always a fal ID we translate, not a raw Kie model name.
 app.post("/api/generate-kie", async (req, res) => {
-  const { modelId, prompt, params = {}, referenceUrls = [], rawIdea = null, client = null, series = null } = req.body ?? {};
+  const { modelId, prompt, params = {}, referenceUrls = [], rawIdea = null, dryRun = false, client = null, series = null } = req.body ?? {};
   if (!KIE_API_KEY) return res.status(400).json({ error: "no KIE_API_KEY configured" });
   const kieKey = KIE_EQUIVALENTS[modelId];
   if (!kieKey) return res.status(400).json({ error: `${modelId} has no Kie equivalent` });
@@ -1737,11 +1994,29 @@ app.post("/api/generate-kie", async (req, res) => {
   try {
     const pre = estimateKieCost(modelId, params);
     send({ phase: "submitting", estimate: pre });
-    const { model, input } = buildKiePayload(kieKey, { prompt, params, referenceUrl: referenceUrls[0] ?? null });
-    const taskId = await kieCreateTask(model, input);
+    const payload = buildKiePayload(kieKey, { modelId, prompt, params, referenceUrl: referenceUrls[0] ?? null });
+
+    // Free pre-flight check, same pattern as /api/generate's dryRun (added
+    // after the exact class of bug this exists to catch: buildKiePayload
+    // silently building a wrong request that Kie would have accepted and
+    // quietly misbehaved on). This confirms OUR request construction —
+    // right endpoint, right field names, reference URL actually present —
+    // for $0. It canNOT confirm Kie will honor those fields: Kie has no
+    // validation layer and drops unrecognized fields instead of rejecting
+    // them, so there is no live "test mode" on their side to call into.
+    // Verifying real behavior still needs one paid call per model shape,
+    // but only once — the shape doesn't drift on its own between calls.
+    if (dryRun) {
+      send({ phase: "dry-run", endpoint: payload.endpoint, model: payload.model, body: payload.body, estimate: pre, client, series });
+      return res.end();
+    }
+
+    const taskId = await kieCreateTask({ endpoint: payload.endpoint, body: payload.body });
     send({ phase: "queued", request_id: taskId });
 
     const data = await kiePollTask(taskId, {
+      pollPath: payload.pollPath,
+      statusOf: payload.statusOf,
       onUpdate: (state) => send({ phase: "status", status: state }),
     });
     const url = kieExtractUrl(data);
@@ -1749,8 +2024,8 @@ app.post("/api/generate-kie", async (req, res) => {
 
     const row = {
       ts: new Date().toISOString(),
-      model: `kie/${model}`,
-      label: `${model} (Kie)`,
+      model: `kie/${payload.model}`,
+      label: `${payload.model} (Kie)`,
       vendor: "kie",
       kind: KIE_PRICING[kieKey].kind,
       lane: "kie",
@@ -1760,7 +2035,11 @@ app.post("/api/generate-kie", async (req, res) => {
       reference_count: referenceUrls.length,
       reference_mode: referenceUrls.length ? "image_url" : null,
       input_assets: referenceUrls.map((url) => ({ url })),
-      params: input,
+      // The full request body actually sent, exactly as Kie received it —
+      // more useful for debugging a wrong/missing reference than a
+      // model-specific "input" sub-object would be, and it works uniformly
+      // whether the model's shape wraps in {model,input} or is flat (veo-3.1).
+      params: payload.body,
       request_id: taskId,
       cost: pre?.cost ?? null,
       cost_confidence: "estimated (kie, no verified billing)",
@@ -1777,6 +2056,86 @@ app.post("/api/generate-kie", async (req, res) => {
     res.end();
   } catch (e) {
     console.warn(`Kie generation failed: ${String(e.message ?? e)}`);
+    send({ phase: "error", error: String(e.message ?? e) });
+    res.end();
+  }
+});
+
+// Third provider option, same shape as /api/generate-kie above (dryRun
+// pre-flight, streamed ndjson phases, ledger row). Only reachable for
+// models mapped in WAVESPEED_EQUIVALENTS.
+app.post("/api/generate-wavespeed", async (req, res) => {
+  const { modelId, prompt, params = {}, referenceUrls = [], rawIdea = null, dryRun = false, client = null, series = null } = req.body ?? {};
+  if (!WAVESPEED_API_KEY) return res.status(400).json({ error: "no WAVESPEED_API_KEY configured" });
+  const wsKey = WAVESPEED_EQUIVALENTS[modelId];
+  if (!wsKey) return res.status(400).json({ error: `${modelId} has no Wavespeed equivalent` });
+  if (!prompt) return res.status(400).json({ error: "prompt required" });
+  // Same reasoning as Kie's identical guard: buildWavespeedPayload only
+  // consumes referenceUrls[0].
+  if (referenceUrls.length > 1) {
+    const label = byId.get(modelId)?.label ?? modelId;
+    return res.status(400).json({
+      error: `Wavespeed only supports a single reference image per request in this app. ${label} has ${referenceUrls.length} attached — switch providers or remove references down to one.`,
+    });
+  }
+
+  res.setHeader("Content-Type", "application/x-ndjson");
+  res.setHeader("Cache-Control", "no-cache");
+  const send = (o) => res.write(JSON.stringify(o) + "\n");
+
+  try {
+    const pre = estimateWavespeedCost(modelId, params);
+    send({ phase: "submitting", estimate: pre });
+    const payload = buildWavespeedPayload(wsKey, { prompt, params, referenceUrl: referenceUrls[0] ?? null });
+
+    // Free pre-flight check, same as Kie's dryRun. Wavespeed validates
+    // server-side (a wrong field name here would 400, not silently
+    // misbehave), but this still confirms the request was built as intended
+    // before spending anything.
+    if (dryRun) {
+      send({ phase: "dry-run", endpoint: payload.endpoint, model: payload.model, body: payload.body, estimate: pre, client, series });
+      return res.end();
+    }
+
+    const { taskId, pollUrl } = await wavespeedCreateTask({ endpoint: payload.endpoint, body: payload.body });
+    send({ phase: "queued", request_id: taskId });
+
+    const data = await wavespeedPollTask(pollUrl, {
+      onUpdate: (status) => send({ phase: "status", status }),
+    });
+    const url = wavespeedExtractUrl(data);
+    const outputs = await mirrorOutputs([{ url }], taskId);
+
+    const row = {
+      ts: new Date().toISOString(),
+      model: `wavespeed/${payload.model}`,
+      label: `${payload.model} (Wavespeed)`,
+      vendor: "wavespeed",
+      kind: WAVESPEED_PRICING[wsKey].kind,
+      lane: "wavespeed",
+      format: "none",
+      raw_idea: rawIdea,
+      prompt,
+      reference_count: referenceUrls.length,
+      reference_mode: referenceUrls.length ? "image_url" : null,
+      input_assets: referenceUrls.map((url) => ({ url })),
+      params: payload.body,
+      request_id: taskId,
+      cost: pre?.cost ?? null,
+      cost_confidence: "estimated (wavespeed, no verified billing)",
+      cost_basis: pre?.basis ?? null,
+      billable_units: null,
+      estimated_cost: pre?.cost ?? null,
+      outputs,
+      client,
+      series,
+    };
+    appendLedger(row);
+
+    send({ phase: "done", result: data, ledger: row, spend: spendSummary() });
+    res.end();
+  } catch (e) {
+    console.warn(`Wavespeed generation failed: ${String(e.message ?? e)}`);
     send({ phase: "error", error: String(e.message ?? e) });
     res.end();
   }

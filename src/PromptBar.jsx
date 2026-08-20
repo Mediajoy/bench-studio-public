@@ -801,11 +801,12 @@ export default function PromptBar({
     return fieldRefs.map((_, i) => formatPromptTag(tag, i + 1));
   });
 
-  // Kie's request builder only ever reads the first reference — if a 2nd
-  // attachment lands while Kie is selected (start+end frame, an Elements
-  // group), fall back to fal rather than leaving a doomed selection active.
+  // Kie's and Wavespeed's request builders only ever read the first
+  // reference — if a 2nd attachment lands while either is selected
+  // (start+end frame, an Elements group), fall back to fal rather than
+  // leaving a doomed selection active.
   useEffect(() => {
-    if (provider === "kie" && refs.length > 1) setProvider("fal");
+    if ((provider === "kie" || provider === "wavespeed") && refs.length > 1) setProvider("fal");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refs.length, provider]);
 
@@ -1158,7 +1159,7 @@ export default function PromptBar({
             </span>
           ))}
 
-          {quote?.kie ? (
+          {quote?.kie || quote?.wavespeed ? (
             <div className="provider-toggle" role="radiogroup" aria-label="Generation provider">
               <button
                 type="button"
@@ -1168,23 +1169,25 @@ export default function PromptBar({
               >
                 fal ${quote.cost?.toFixed(3) ?? "?"}
               </button>
-              <button
-                type="button"
-                className={`provider-opt${provider === "kie" ? " on" : ""}`}
-                onClick={() => setProvider("kie")}
-                disabled={busy || refs.length > 1}
-                title={refs.length > 1
-                  ? `Kie only supports one reference per request — ${refs.length} are attached. Remove references down to one, or use fal.`
-                  : `${quote.kie.basis}\n${
-                      quote.kie.last_verified
-                        ? `Price last verified ${quote.kie.last_verified} (${quote.kie.verified_via})`
-                        : "Price provenance unknown — never confirmed against a live source"
-                    }`}
-              >
-                Kie ${quote.kie.cost.toFixed(3)}
-                {!quote.kie.last_verified ? <sup className="price-unverified">?</sup> : null}
-              </button>
-              {quote.kie.source_url ? (
+              {quote.kie ? (
+                <button
+                  type="button"
+                  className={`provider-opt${provider === "kie" ? " on" : ""}`}
+                  onClick={() => setProvider("kie")}
+                  disabled={busy || refs.length > 1}
+                  title={refs.length > 1
+                    ? `Kie only supports one reference per request — ${refs.length} are attached. Remove references down to one, or use fal.`
+                    : `${quote.kie.basis}\n${
+                        quote.kie.last_verified
+                          ? `Price last verified ${quote.kie.last_verified} (${quote.kie.verified_via})`
+                          : "Price provenance unknown — never confirmed against a live source"
+                      }`}
+                >
+                  Kie ${quote.kie.cost.toFixed(3)}
+                  {!quote.kie.last_verified ? <sup className="price-unverified">?</sup> : null}
+                </button>
+              ) : null}
+              {quote.kie?.source_url ? (
                 <a
                   className="price-source-link"
                   href={quote.kie.source_url}
@@ -1196,13 +1199,47 @@ export default function PromptBar({
                   check price
                 </a>
               ) : null}
+              {quote.wavespeed ? (
+                <button
+                  type="button"
+                  className={`provider-opt${provider === "wavespeed" ? " on" : ""}`}
+                  onClick={() => setProvider("wavespeed")}
+                  disabled={busy || refs.length > 1}
+                  title={refs.length > 1
+                    ? `Wavespeed only supports one reference per request here — ${refs.length} are attached. Remove references down to one, or use fal.`
+                    : `${quote.wavespeed.basis}\n${
+                        quote.wavespeed.last_verified
+                          ? `Price last verified ${quote.wavespeed.last_verified} (${quote.wavespeed.verified_via})`
+                          : "Price provenance unknown — never confirmed against a live source"
+                      }`}
+                >
+                  Wavespeed ${quote.wavespeed.cost.toFixed(3)}
+                  {!quote.wavespeed.last_verified ? <sup className="price-unverified">?</sup> : null}
+                </button>
+              ) : null}
+              {quote.wavespeed?.source_url ? (
+                <a
+                  className="price-source-link"
+                  href={quote.wavespeed.source_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Check the current Wavespeed price for this model"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  check price
+                </a>
+              ) : null}
             </div>
           ) : null}
 
           {quote?.cost != null ? (
             <span className="bar-price exact" title={quote.basis}>
-              <span>Estimated total{quote.kie ? ` (${provider === "kie" ? "Kie" : "fal"})` : ""}</span>
-              <b>${(provider === "kie" && quote.kie ? quote.kie.cost : quote.cost).toFixed(3)}</b>
+              <span>Estimated total{quote.kie || quote.wavespeed ? ` (${provider === "kie" ? "Kie" : provider === "wavespeed" ? "Wavespeed" : "fal"})` : ""}</span>
+              <b>${(
+                provider === "kie" && quote.kie ? quote.kie.cost
+                : provider === "wavespeed" && quote.wavespeed ? quote.wavespeed.cost
+                : quote.cost
+              ).toFixed(3)}</b>
             </span>
           ) : quote?.confidence === "unquotable" ? (
             <span className="bar-price metered" title={quote.basis}>

@@ -674,7 +674,15 @@ export default function App() {
       .then((q) => {
         if (dead) return;
         setQuote(q);
-        if (!q.kie) setProvider("fal"); // stay on fal if this model has no Kie mapping
+        // Fall back to fal only if the CURRENTLY selected provider has no
+        // mapping for this model — switching models while "kie" is active
+        // must not also stomp a valid "wavespeed" selection just because
+        // this particular model happens to lack a Kie mapping, and vice versa.
+        setProvider((current) => {
+          if (current === "kie" && !q.kie) return "fal";
+          if (current === "wavespeed" && !q.wavespeed) return "fal";
+          return current;
+        });
       })
       .catch(() => {});
     return () => { dead = true; };
@@ -853,16 +861,22 @@ export default function App() {
 
     try {
       const useKie = provider === "kie" && quote?.kie;
+      const useWavespeed = provider === "wavespeed" && quote?.wavespeed;
+      const thirdPartyEndpoint = useKie ? "/api/generate-kie" : useWavespeed ? "/api/generate-wavespeed" : null;
       const client = activeClient && activeClient !== "__none__" ? activeClient : null;
       // series travels alongside any real scope — a real client OR
       // Unassigned both have a meaningful series to tag with; only "All
       // clients" (activeClient === "") does not.
       const series = activeClient && activeSeries && activeSeries !== "__none__" ? activeSeries : null;
-      const res = await fetch(useKie ? "/api/generate-kie" : "/api/generate", {
+      // Kie and Wavespeed share the same request shape from this app's
+      // side (modelId, prompt, params, a flat referenceUrls array) — only
+      // the endpoint differs; each server-side route translates it into
+      // that provider's actual API shape.
+      const res = await fetch(thirdPartyEndpoint ?? "/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: ctrl.signal,
-        body: JSON.stringify(useKie ? {
+        body: JSON.stringify(thirdPartyEndpoint ? {
           modelId, prompt, params, rawIdea: idea,
           referenceUrls: refs.map((r) => r.url),
           client, series,
