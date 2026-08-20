@@ -57,6 +57,7 @@ const FAL_KEY = process.env.FAL_KEY;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 const KIE_API_KEY = process.env.KIE_API_KEY;
 const WAVESPEED_API_KEY = process.env.WAVESPEED_API_KEY;
+const HEYGEN_API_KEY = process.env.HEYGEN_API_KEY;
 if (!FAL_KEY) {
   console.error("No FAL_KEY in ~/.env. Add one from fal.ai/dashboard/keys and restart.");
   process.exit(1);
@@ -490,6 +491,51 @@ const WAVESPEED_EQUIVALENTS = {
   "fal-ai/nano-banana-pro/edit": "google/nano-banana-pro",
 };
 
+// HeyGen (heygen.com) — fourth provider option, and the only one of the
+// four that isn't fal-catalog-shaped: it has no prompt-driven image/video
+// generation, only avatar/talking-photo video. Only reachable for the
+// talking-head models already in the roster (echomimic-v3, infinitalk,
+// latentsync), and only as a *per-second* rate — there is no per-model
+// "model id" to bill against the way fal/Kie/Wavespeed have one, since the
+// tier is selected by which character+voice combination is sent, not a
+// model string. Pricing confirmed live 2026-08-20 via
+// developers.heygen.com/docs/pricing — see providers/heygen.md (shot-builder
+// repo) for the full endpoint reference and shot-builder's scripts/cost.py
+// PRICE_TABLE["heygen"], which mirrors these same numbers by hand.
+const HEYGEN_PRICING_SOURCE = "https://developers.heygen.com/docs/pricing";
+const HEYGEN_PRICING = {
+  "avatar-iii-photo": { kind: "video", video_per_second: 0.0433, last_verified: "2026-08-20", verified_via: "docs", source_url: HEYGEN_PRICING_SOURCE },
+  "avatar-iii-digital-twin": { kind: "video", video_per_second: 0.0167, last_verified: "2026-08-20", verified_via: "docs", source_url: HEYGEN_PRICING_SOURCE },
+  "avatar-iv-photo": { kind: "video", video_per_second: 0.05, last_verified: "2026-08-20", verified_via: "docs", source_url: HEYGEN_PRICING_SOURCE },
+  "avatar-iv-digital-twin": { kind: "video", video_per_second: 0.0667, last_verified: "2026-08-20", verified_via: "docs", source_url: HEYGEN_PRICING_SOURCE },
+  "avatar-v-digital-twin": { kind: "video", video_per_second: 0.0667, last_verified: "2026-08-20", verified_via: "docs", source_url: HEYGEN_PRICING_SOURCE },
+  // Midpoint of HeyGen's published $0.0333-$0.0667/s "speed vs precision" range.
+  lipsync: { kind: "video", video_per_second: 0.0433, last_verified: "2026-08-20", verified_via: "docs", source_url: HEYGEN_PRICING_SOURCE },
+  "video-translate": { kind: "video", video_per_second: 0.0433, last_verified: "2026-08-20", verified_via: "docs", source_url: HEYGEN_PRICING_SOURCE },
+  // Flat-rate, not per-second — estimateHeygenCost special-cases this.
+  "cinematic-avatar": { kind: "video", video_base: 7.0, video_per_second: 0, last_verified: "2026-08-20", verified_via: "docs", source_url: HEYGEN_PRICING_SOURCE },
+};
+
+// echomimic-v3 and infinitalk are both image+audio -> talking video, the
+// same shape as HeyGen's photo-avatar tier (POST /v3/videos, type: "image").
+//
+// latentsync is deliberately NOT mapped here. It re-syncs an EXISTING
+// video's lips to new audio (video_url + audio_url, no still image) — there
+// is no HeyGen v3 equivalent for that shape. The live schema probe that
+// grounded HEYGEN_PRICING's "lipsync" entry (providers/heygen.md, shot-
+// builder repo) only confirmed top-level `type` values `avatar`, `image`,
+// `cinematic_avatar`, `studio` — no `video`/lipsync type exists on v3. The
+// "lipsync" pricing tier is real (HeyGen sells the product), but which v3
+// endpoint/shape reaches it was never confirmed, so mapping latentsync to
+// it produced a toggle that rendered but could never be enabled: the app's
+// generate-heygen route requires an image asset that latentsync never has.
+// Re-add this mapping once a live-confirmed request shape exists — do not
+// guess one back in.
+const HEYGEN_EQUIVALENTS = {
+  "fal-ai/echomimic-v3": "avatar-iii-photo",
+  "fal-ai/infinitalk": "avatar-iii-photo",
+};
+
 function estimateKieCost(modelId, params) {
   const kieKey = KIE_EQUIVALENTS[modelId];
   if (!kieKey) return null;
@@ -542,6 +588,35 @@ function estimateWavespeedCost(modelId, params) {
     };
   }
   return null; // no video models mapped yet
+}
+
+function estimateHeygenCost(modelId, params) {
+  const heygenKey = HEYGEN_EQUIVALENTS[modelId];
+  if (!heygenKey) return null;
+  const spec = HEYGEN_PRICING[heygenKey];
+  if (!spec) return null;
+
+  if (spec.video_per_second === 0) {
+    return {
+      cost: Number(spec.video_base.toFixed(4)),
+      model: heygenKey,
+      basis: `flat @ $${spec.video_base}/video`,
+      last_verified: spec.last_verified,
+      verified_via: spec.verified_via,
+      source_url: spec.source_url,
+    };
+  }
+
+  const duration = durationSeconds(modelId, params);
+  const cost = (spec.video_base ?? 0) + spec.video_per_second * duration;
+  return {
+    cost: Number(cost.toFixed(4)),
+    model: heygenKey,
+    basis: `${duration}s x $${spec.video_per_second}/s`,
+    last_verified: spec.last_verified,
+    verified_via: spec.verified_via,
+    source_url: spec.source_url,
+  };
 }
 
 function durationSeconds(modelId, params) {
@@ -1183,6 +1258,157 @@ function wavespeedExtractUrl(data) {
   throw new Error(`No artifact URL in Wavespeed response: ${JSON.stringify(data).slice(0, 300)}`);
 }
 
+// ---------------------------------------------------------------- heygen
+//
+// Targets HeyGen's v3 API (v1/v2 are legacy, sunset 2026-10-31 — every
+// v1/v2 response carries a `warning` block saying so). Every shape below
+// was confirmed live against the real API 2026-08-20 (a real upload, a
+// real GET /v3/users/me, and a POST /v3/videos schema probe via
+// deliberately-invalid bodies — HeyGen's validator names the exact
+// missing/wrong field in each 400, e.g. "Field required" / param:
+// "image.url.url", which is what pinned the nested shapes down). See
+// providers/heygen.md (shot-builder repo) for the full probe transcript.
+//
+// HeyGen doesn't take a reference URL directly the way fal/Kie/Wavespeed
+// do — its image and audio inputs are both asset IDs, minted by uploading
+// bytes to POST /v3/assets (multipart/form-data — a raw-binary POST 400s
+// with "File is required..."). So generating via HeyGen here means: fetch
+// the already-generated fal reference asset's bytes, re-upload them to
+// mint asset_ids, THEN submit the video job against those IDs.
+
+const HEYGEN_API_BASE = "https://api.heygen.com";
+
+async function heygenUploadFromUrl(url, filename) {
+  const sourceRes = await fetch(url);
+  if (!sourceRes.ok) throw new Error(`could not fetch reference asset for HeyGen upload (${url}): HTTP ${sourceRes.status}`);
+  const blob = await sourceRes.blob();
+  const form = new FormData();
+  form.append("file", blob, filename);
+  console.log(`heygen upload -> POST /v3/assets (${blob.size} bytes, ${blob.type || "unknown type"})`);
+  const res = await fetch(`${HEYGEN_API_BASE}/v3/assets`, {
+    method: "POST",
+    headers: { "X-Api-Key": HEYGEN_API_KEY },
+    body: form,
+  });
+  const body = await res.json().catch(() => ({}));
+  const assetId = body?.data?.asset_id;
+  if (!assetId) {
+    const err = body?.error ?? {};
+    throw new Error(`HeyGen upload /v3/assets failed (${err.code ?? "?"}): ${err.message ?? "no error message"}`);
+  }
+  return assetId;
+}
+
+// HeyGen keeps an uploaded asset indefinitely (no documented expiry, unlike
+// Kie's 14-day retention), so re-uploading the SAME reference image/audio
+// on every HeyGen generation is pure waste — same bytes, new asset_id, no
+// benefit. Cache asset_id by source URL (Bench's own hosted URL for that
+// reference, stable across repeat generations of the same attached file)
+// and skip the upload entirely on a cache hit. Same on-disk-JSON pattern as
+// PRICE_CACHE above, not the SQLite store — this is disposable derived
+// data, not ledger history.
+const HEYGEN_ASSET_CACHE = join(DATA, "heygen-asset-cache.json");
+
+function readHeygenAssetCache() {
+  if (!existsSync(HEYGEN_ASSET_CACHE)) return {};
+  try {
+    return JSON.parse(readFileSync(HEYGEN_ASSET_CACHE, "utf8"));
+  } catch (e) {
+    console.warn(`heygen asset cache unreadable: ${e.message}`);
+    return {};
+  }
+}
+
+function cacheHeygenAsset(url, assetId) {
+  const cache = readHeygenAssetCache();
+  cache[url] = { asset_id: assetId, uploaded_at: new Date().toISOString() };
+  try { writeFileSync(HEYGEN_ASSET_CACHE, JSON.stringify(cache, null, 2)); } catch {}
+}
+
+function invalidateHeygenAsset(url) {
+  const cache = readHeygenAssetCache();
+  if (!(url in cache)) return;
+  delete cache[url];
+  try { writeFileSync(HEYGEN_ASSET_CACHE, JSON.stringify(cache, null, 2)); } catch {}
+}
+
+// Cache-aware wrapper around heygenUploadFromUrl. `forceRefresh` bypasses a
+// stale cache entry — used by the generate route's one-shot retry when
+// HeyGen no longer recognizes a cached asset_id (deleted from HeyGen's
+// side, account change, etc.), so a stale entry self-heals on the next
+// call instead of hard-failing every generation forever.
+async function heygenUploadFromUrlCached(url, filename, { forceRefresh = false } = {}) {
+  if (!forceRefresh) {
+    const cached = readHeygenAssetCache()[url];
+    if (cached?.asset_id) {
+      console.log(`heygen upload -> reusing cached asset_id for ${url} (uploaded ${cached.uploaded_at})`);
+      return cached.asset_id;
+    }
+  }
+  const assetId = await heygenUploadFromUrl(url, filename);
+  cacheHeygenAsset(url, assetId);
+  return assetId;
+}
+
+// Builds the POST /v3/videos body. `image` is a nested discriminated union
+// ({type: "asset_id", asset_id} — a bare string or an untagged object both
+// 400 with "Unable to extract tag using discriminator 'type'"); audio is a
+// FLAT top-level field (audio_asset_id), not nested under a "voice" object
+// the way the legacy v2 shape had it. Only the photo-avatar + pre-recorded-
+// audio path is wired up — text-to-speech (script + voice_id) has no
+// caller here since every mapped fal model already carries its own
+// audio_url input.
+function buildHeygenPayload({ imageAssetId, audioAssetId }) {
+  const body = {
+    type: "image",
+    image: { type: "asset_id", asset_id: imageAssetId },
+    audio_asset_id: audioAssetId,
+  };
+  return { body };
+}
+
+async function heygenCreateTask(body) {
+  console.log(`heygen createTask -> POST /v3/videos body=${JSON.stringify(body)}`);
+  const res = await fetch(`${HEYGEN_API_BASE}/v3/videos`, {
+    method: "POST",
+    headers: { "X-Api-Key": HEYGEN_API_KEY, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const respBody = await res.json().catch(() => ({}));
+  const videoId = respBody?.data?.video_id;
+  if (!videoId) {
+    const err = respBody?.error ?? {};
+    throw new Error(`HeyGen video generate failed (${err.code ?? "?"}): ${err.message ?? "no error message"}`);
+  }
+  return videoId;
+}
+
+async function heygenPollTask(videoId, { onUpdate, intervalMs = 5000, timeoutMs = 8 * 60 * 1000 } = {}) {
+  // A 404 (video_not_found) here means the id is wrong, NOT "still
+  // generating" — confirmed live: a real in-flight video returns 200 with
+  // a status field throughout. Don't treat 404 as a pending state.
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const res = await fetch(`${HEYGEN_API_BASE}/v3/videos/${encodeURIComponent(videoId)}`, {
+      headers: { "X-Api-Key": HEYGEN_API_KEY },
+    });
+    const body = await res.json().catch(() => ({}));
+    if (res.status === 404) throw new Error(`HeyGen video ${videoId} not found (wrong id, not a pending state)`);
+    const data = body?.data ?? {};
+    const status = String(data.status ?? "").toLowerCase();
+    onUpdate?.(status);
+    if (status === "completed") return data;
+    if (status === "failed") throw new Error(`HeyGen video ${videoId} failed: ${data?.error?.message ?? "unknown error"}`);
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  throw new Error("HeyGen video timed out");
+}
+
+function heygenExtractUrl(data) {
+  if (data?.video_url) return data.video_url;
+  throw new Error(`No artifact URL in HeyGen response: ${JSON.stringify(data).slice(0, 300)}`);
+}
+
 async function falUpload(buffer, filename, contentType) {
   // fal's storage: ask for a signed upload URL, PUT the bytes, get back a
   // public file_url you can hand to any model as image_url.
@@ -1531,7 +1757,8 @@ app.post("/api/quote", (req, res) => {
   const fal = estimateCost(modelId, params);
   const kie = estimateKieCost(modelId, params);
   const wavespeed = estimateWavespeedCost(modelId, params);
-  res.json({ ...fal, ...(kie ? { kie } : {}), ...(wavespeed ? { wavespeed } : {}) });
+  const heygen = estimateHeygenCost(modelId, params);
+  res.json({ ...fal, ...(kie ? { kie } : {}), ...(wavespeed ? { wavespeed } : {}), ...(heygen ? { heygen } : {}) });
 });
 
 // Every Kie model this app knows how to price/generate against, with its
@@ -1549,6 +1776,23 @@ app.get("/api/kie-pricing", (_req, res) => {
     verified_via: spec.verified_via,
     source_url: spec.source_url,
     fal_equivalents: Object.entries(KIE_EQUIVALENTS).filter(([, v]) => v === kieKey).map(([k]) => k),
+  }));
+  res.json({ rows });
+});
+
+// Same shape as /api/kie-pricing, for HeyGen's per-second tiers.
+app.get("/api/heygen-pricing", (_req, res) => {
+  const rows = Object.entries(HEYGEN_PRICING).map(([heygenKey, spec]) => ({
+    heygen_model: heygenKey,
+    kind: spec.kind,
+    cost: null,
+    basis: spec.video_per_second === 0
+      ? `flat @ $${spec.video_base}/video`
+      : `$${spec.video_per_second}/s`,
+    last_verified: spec.last_verified,
+    verified_via: spec.verified_via,
+    source_url: spec.source_url,
+    fal_equivalents: Object.entries(HEYGEN_EQUIVALENTS).filter(([, v]) => v === heygenKey).map(([k]) => k),
   }));
   res.json({ rows });
 });
@@ -2136,6 +2380,112 @@ app.post("/api/generate-wavespeed", async (req, res) => {
     res.end();
   } catch (e) {
     console.warn(`Wavespeed generation failed: ${String(e.message ?? e)}`);
+    send({ phase: "error", error: String(e.message ?? e) });
+    res.end();
+  }
+});
+
+// Fourth provider option. Unlike Kie/Wavespeed, this one needs BOTH an
+// image and an audio reference (HeyGen's photo-avatar shape), not a single
+// referenceUrls[0] — so it reads inputAssets (the same {url, field,
+// media_type} shape /api/generate validates against) instead. Only
+// reachable for models mapped in HEYGEN_EQUIVALENTS.
+app.post("/api/generate-heygen", async (req, res) => {
+  const { modelId, params = {}, inputAssets = [], rawIdea = null, dryRun = false, client = null, series = null } = req.body ?? {};
+  if (!HEYGEN_API_KEY) return res.status(400).json({ error: "no HEYGEN_API_KEY configured" });
+  const heygenKey = HEYGEN_EQUIVALENTS[modelId];
+  if (!heygenKey) return res.status(400).json({ error: `${modelId} has no HeyGen equivalent` });
+
+  // echomimic-v3/infinitalk carry the still under `image_url`; latentsync
+  // (mapped to HeyGen's Lipsync product) carries an existing clip under
+  // `video_url` instead — either way, the audio reference is `audio_url`.
+  // HeyGen's photo-avatar path in this app only handles the image case;
+  // latentsync's video_url shape isn't a photo-avatar upload, so it's
+  // rejected here rather than silently sending the wrong bytes.
+  const imageAsset = inputAssets.find((a) => a.media_type === "image");
+  const audioAsset = inputAssets.find((a) => a.media_type === "audio");
+  if (!imageAsset || !audioAsset) {
+    const label = byId.get(modelId)?.label ?? modelId;
+    return res.status(400).json({
+      error: `HeyGen needs both a reference image and a reference audio attached. ${label} is missing ${!imageAsset ? "an image" : "an audio clip"} — switch providers or attach both first.`,
+    });
+  }
+
+  res.setHeader("Content-Type", "application/x-ndjson");
+  res.setHeader("Cache-Control", "no-cache");
+  const send = (o) => res.write(JSON.stringify(o) + "\n");
+
+  try {
+    const pre = estimateHeygenCost(modelId, params);
+    send({ phase: "submitting", estimate: pre });
+
+    if (dryRun) {
+      send({ phase: "dry-run", endpoint: "/v3/videos", model: heygenKey, body: { note: "dry-run skips the two /v3/assets upload calls; would upload image + audio, then submit" }, estimate: pre, client, series });
+      return res.end();
+    }
+
+    send({ phase: "status", status: "uploading image" });
+    let imageAssetId = await heygenUploadFromUrlCached(imageAsset.url, "reference.jpg");
+    send({ phase: "status", status: "uploading audio" });
+    let audioAssetId = await heygenUploadFromUrlCached(audioAsset.url, "reference.mp3");
+
+    // A cached asset_id can go stale (deleted on HeyGen's side, account
+    // change) without Bench ever finding out until the video job itself
+    // rejects it. Self-heal once: force a fresh upload for whichever side
+    // HeyGen actually named, re-cache it, and retry the submit — rather
+    // than leaving every future generation against this reference broken.
+    let videoId;
+    try {
+      videoId = await heygenCreateTask(buildHeygenPayload({ imageAssetId, audioAssetId }).body);
+    } catch (e) {
+      if (!/asset_not_found/i.test(String(e.message))) throw e;
+      console.warn(`heygen: cached asset_id rejected, re-uploading — ${e.message}`);
+      send({ phase: "status", status: "cached avatar expired, re-uploading" });
+      invalidateHeygenAsset(imageAsset.url);
+      invalidateHeygenAsset(audioAsset.url);
+      imageAssetId = await heygenUploadFromUrlCached(imageAsset.url, "reference.jpg", { forceRefresh: true });
+      audioAssetId = await heygenUploadFromUrlCached(audioAsset.url, "reference.mp3", { forceRefresh: true });
+      videoId = await heygenCreateTask(buildHeygenPayload({ imageAssetId, audioAssetId }).body);
+    }
+    const { body } = buildHeygenPayload({ imageAssetId, audioAssetId });
+    send({ phase: "queued", request_id: videoId });
+
+    const data = await heygenPollTask(videoId, {
+      onUpdate: (status) => send({ phase: "status", status }),
+    });
+    const url = heygenExtractUrl(data);
+    const outputs = await mirrorOutputs([{ url }], videoId);
+
+    const row = {
+      ts: new Date().toISOString(),
+      model: `heygen/${heygenKey}`,
+      label: `${heygenKey} (HeyGen)`,
+      vendor: "heygen",
+      kind: HEYGEN_PRICING[heygenKey].kind,
+      lane: "heygen",
+      format: "none",
+      raw_idea: rawIdea,
+      prompt: null,
+      reference_count: 2,
+      reference_mode: "image_url+audio_url",
+      input_assets: [{ url: imageAsset.url, field: "image" }, { url: audioAsset.url, field: "audio" }],
+      params: body,
+      request_id: videoId,
+      cost: pre?.cost ?? null,
+      cost_confidence: "estimated (heygen, no verified billing)",
+      cost_basis: pre?.basis ?? null,
+      billable_units: null,
+      estimated_cost: pre?.cost ?? null,
+      outputs,
+      client,
+      series,
+    };
+    appendLedger(row);
+
+    send({ phase: "done", result: data, ledger: row, spend: spendSummary() });
+    res.end();
+  } catch (e) {
+    console.warn(`HeyGen generation failed: ${String(e.message ?? e)}`);
     send({ phase: "error", error: String(e.message ?? e) });
     res.end();
   }

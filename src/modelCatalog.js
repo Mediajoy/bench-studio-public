@@ -76,10 +76,27 @@ export const ROLE_LABELS = {
   source: "Image",
 };
 
+// "source" is fal's generic role name for "the main input this field
+// wants" — it's reused for BOTH an image field and an audio field on the
+// same model (e.g. infinitalk's image_url and audio_url are both tagged
+// role: "source"). Labeling every "source" slot "Image" assumed the role
+// alone was enough, which broke the moment a talking-head model's audio
+// input row rendered as a second "Image" slot with no way to tell them
+// apart. Fall back to the field's modality instead — "Image" for image
+// modality (unchanged default), "Audio"/"Video"/"Document" otherwise.
+const MODALITY_FALLBACK_LABEL = {
+  image: "Image",
+  audio: "Audio",
+  video: "Video",
+  document: "Document",
+  mixed: "Image",
+};
+
 export function roleLabel(input) {
   if (!input) return ROLE_LABELS.source;
   if ((input.role === "source" || input.role === "reference") && input.arity === "multiple") return "Reference";
-  return ROLE_LABELS[input.role] ?? ROLE_LABELS.source;
+  const explicit = input.role !== "source" ? ROLE_LABELS[input.role] : null;
+  return explicit ?? MODALITY_FALLBACK_LABEL[input.modality] ?? ROLE_LABELS.source;
 }
 
 // The distinct candidate fields a model exposes for a modality, each carrying

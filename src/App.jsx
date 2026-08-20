@@ -681,6 +681,7 @@ export default function App() {
         setProvider((current) => {
           if (current === "kie" && !q.kie) return "fal";
           if (current === "wavespeed" && !q.wavespeed) return "fal";
+          if (current === "heygen" && !q.heygen) return "fal";
           return current;
         });
       })
@@ -862,30 +863,36 @@ export default function App() {
     try {
       const useKie = provider === "kie" && quote?.kie;
       const useWavespeed = provider === "wavespeed" && quote?.wavespeed;
-      const thirdPartyEndpoint = useKie ? "/api/generate-kie" : useWavespeed ? "/api/generate-wavespeed" : null;
+      const useHeygen = provider === "heygen" && quote?.heygen;
+      const thirdPartyEndpoint = useKie ? "/api/generate-kie" : useWavespeed ? "/api/generate-wavespeed" : useHeygen ? "/api/generate-heygen" : null;
       const client = activeClient && activeClient !== "__none__" ? activeClient : null;
       // series travels alongside any real scope — a real client OR
       // Unassigned both have a meaningful series to tag with; only "All
       // clients" (activeClient === "") does not.
       const series = activeClient && activeSeries && activeSeries !== "__none__" ? activeSeries : null;
+      const inputAssets = refs.map(({ url, field, media_type, upload_id, name, element_index, element_role }) => ({
+        url, field, media_type, upload_id, name, element_index, element_role,
+      }));
       // Kie and Wavespeed share the same request shape from this app's
       // side (modelId, prompt, params, a flat referenceUrls array) — only
       // the endpoint differs; each server-side route translates it into
-      // that provider's actual API shape.
+      // that provider's actual API shape. HeyGen needs both an image AND
+      // an audio reference (not just the first attached asset), so it gets
+      // the same inputAssets shape /api/generate uses, not referenceUrls.
       const res = await fetch(thirdPartyEndpoint ?? "/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: ctrl.signal,
-        body: JSON.stringify(thirdPartyEndpoint ? {
+        body: JSON.stringify(useHeygen ? {
+          modelId, params, rawIdea: idea, inputAssets, client, series,
+        } : thirdPartyEndpoint ? {
           modelId, prompt, params, rawIdea: idea,
           referenceUrls: refs.map((r) => r.url),
           client, series,
         } : {
           modelId, prompt, params, format, rawIdea: idea,
           shotSettings, client, series,
-          inputAssets: refs.map(({ url, field, media_type, upload_id, name, element_index, element_role }) => ({
-            url, field, media_type, upload_id, name, element_index, element_role,
-          })),
+          inputAssets,
         }),
       });
 

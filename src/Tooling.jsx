@@ -5,10 +5,12 @@ export default function Tooling() {
   const [copied, setCopied] = useState(false);
   const [client, setClient] = useState("claude");
   const [kiePricing, setKiePricing] = useState(null);
+  const [heygenPricing, setHeygenPricing] = useState(null);
 
   useEffect(() => {
     fetch("/api/tooling").then((response) => response.json()).then(setConfig).catch(() => {});
     fetch("/api/kie-pricing").then((response) => response.json()).then((d) => setKiePricing(d.rows)).catch(() => {});
+    fetch("/api/heygen-pricing").then((response) => response.json()).then((d) => setHeygenPricing(d.rows)).catch(() => {});
   }, []);
 
   const snippet = useMemo(() => {
@@ -133,6 +135,50 @@ export default function Tooling() {
             {(kiePricing ?? []).map((row) => (
               <tr key={row.kie_model}>
                 <td><code>{row.kie_model}</code></td>
+                <td>{row.fal_equivalents.length ? row.fal_equivalents.map((id) => <code key={id}>{id}</code>) : <span className="muted">none mapped</span>}</td>
+                <td>{row.basis}</td>
+                <td>
+                  {row.last_verified ? (
+                    <span title={row.verified_via}>{row.last_verified}</span>
+                  ) : (
+                    <span className="price-unverified-row">never verified</span>
+                  )}
+                </td>
+                <td>
+                  {row.source_url ? (
+                    <a href={row.source_url} target="_blank" rel="noreferrer">check price</a>
+                  ) : (
+                    <span className="muted">—</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <section className="tool-list-section">
+        <div className="tool-list-head">
+          <div>
+            <h2>HeyGen price sources</h2>
+            <p>HeyGen bills per second from a prepaid USD wallet, not a per-model API price — these rates are hand-checked against HeyGen's published pricing docs. Use the link to verify the current rate before trusting a quote.</p>
+          </div>
+          <span>{heygenPricing?.length ?? 0} tiers</span>
+        </div>
+        <table className="kie-pricing-table">
+          <thead>
+            <tr>
+              <th>HeyGen tier</th>
+              <th>fal equivalents</th>
+              <th>Current basis</th>
+              <th>Last verified</th>
+              <th>Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(heygenPricing ?? []).map((row) => (
+              <tr key={row.heygen_model}>
+                <td><code>{row.heygen_model}</code></td>
                 <td>{row.fal_equivalents.length ? row.fal_equivalents.map((id) => <code key={id}>{id}</code>) : <span className="muted">none mapped</span>}</td>
                 <td>{row.basis}</td>
                 <td>

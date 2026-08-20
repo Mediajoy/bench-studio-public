@@ -804,11 +804,16 @@ export default function PromptBar({
   // Kie's and Wavespeed's request builders only ever read the first
   // reference — if a 2nd attachment lands while either is selected
   // (start+end frame, an Elements group), fall back to fal rather than
-  // leaving a doomed selection active.
+  // leaving a doomed selection active. HeyGen is the opposite case: it
+  // needs exactly one image AND one audio ref, so it falls back the moment
+  // either goes missing rather than when a count threshold is crossed.
+  const hasImageRef = refs.some((r) => r.media_type === "image");
+  const hasAudioRef = refs.some((r) => r.media_type === "audio");
   useEffect(() => {
     if ((provider === "kie" || provider === "wavespeed") && refs.length > 1) setProvider("fal");
+    if (provider === "heygen" && (!hasImageRef || !hasAudioRef)) setProvider("fal");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refs.length, provider]);
+  }, [refs.length, provider, hasImageRef, hasAudioRef]);
 
   useEffect(() => {
     if (!rewritten?.prompt) { setTagWarning(null); return; }
@@ -1159,7 +1164,7 @@ export default function PromptBar({
             </span>
           ))}
 
-          {quote?.kie || quote?.wavespeed ? (
+          {quote?.kie || quote?.wavespeed || quote?.heygen ? (
             <div className="provider-toggle" role="radiogroup" aria-label="Generation provider">
               <button
                 type="button"
@@ -1229,15 +1234,46 @@ export default function PromptBar({
                   check price
                 </a>
               ) : null}
+              {quote.heygen ? (
+                <button
+                  type="button"
+                  className={`provider-opt${provider === "heygen" ? " on" : ""}`}
+                  onClick={() => setProvider("heygen")}
+                  disabled={busy || !hasImageRef || !hasAudioRef}
+                  title={!hasImageRef || !hasAudioRef
+                    ? "HeyGen needs both a reference image and a reference audio clip attached."
+                    : `${quote.heygen.basis}\n${
+                        quote.heygen.last_verified
+                          ? `Price last verified ${quote.heygen.last_verified} (${quote.heygen.verified_via})`
+                          : "Price provenance unknown — never confirmed against a live source"
+                      }`}
+                >
+                  HeyGen ${quote.heygen.cost.toFixed(3)}
+                  {!quote.heygen.last_verified ? <sup className="price-unverified">?</sup> : null}
+                </button>
+              ) : null}
+              {quote.heygen?.source_url ? (
+                <a
+                  className="price-source-link"
+                  href={quote.heygen.source_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Check the current HeyGen price for this model"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  check price
+                </a>
+              ) : null}
             </div>
           ) : null}
 
           {quote?.cost != null ? (
             <span className="bar-price exact" title={quote.basis}>
-              <span>Estimated total{quote.kie || quote.wavespeed ? ` (${provider === "kie" ? "Kie" : provider === "wavespeed" ? "Wavespeed" : "fal"})` : ""}</span>
+              <span>Estimated total{quote.kie || quote.wavespeed || quote.heygen ? ` (${provider === "kie" ? "Kie" : provider === "wavespeed" ? "Wavespeed" : provider === "heygen" ? "HeyGen" : "fal"})` : ""}</span>
               <b>${(
                 provider === "kie" && quote.kie ? quote.kie.cost
                 : provider === "wavespeed" && quote.wavespeed ? quote.wavespeed.cost
+                : provider === "heygen" && quote.heygen ? quote.heygen.cost
                 : quote.cost
               ).toFixed(3)}</b>
             </span>
