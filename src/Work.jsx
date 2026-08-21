@@ -80,6 +80,7 @@ function Shot({ shot, onDelete, onToggleStar, onSetClient, clients = [], onSetSe
   const [assigning, setAssigning] = useState(false);
   const [assigningSeries, setAssigningSeries] = useState(false);
   const [seriesOptions, setSeriesOptions] = useState([]);
+  const [pathCopied, setPathCopied] = useState(false);
   const verified = shot.cost_confidence === "verified";
   const formatLabel = FORMAT_LABELS[shot.format];
   const idea = String(shot.raw_idea || shot.prompt || "").trim();
@@ -169,6 +170,19 @@ function Shot({ shot, onDelete, onToggleStar, onSetClient, clients = [], onSetSe
       setStarring(false);
     }
   }
+
+  // The absolute filesystem path, not the /media/... URL the <img>/<video>
+  // tags use — that's what's actually useful to paste into Finder, a
+  // terminal, or another app. Only present when the archive kept a local
+  // copy (local_path is unset for remote-only rows).
+  const localPath = shot.outputs?.[0]?.local_path;
+  async function copyPath() {
+    if (!localPath) return;
+    await navigator.clipboard.writeText(localPath);
+    setPathCopied(true);
+    setTimeout(() => setPathCopied(false), 1400);
+  }
+
   return (
     <div className="work">
       {shot.outputs.map((o, i) => {
@@ -213,6 +227,17 @@ function Shot({ shot, onDelete, onToggleStar, onSetClient, clients = [], onSetSe
               {detailsOpen ? "Hide details" : "Details"}
             </button>
             <a href={shot.outputs[0]?.local_url || shot.outputs[0]?.url} download aria-label={`Download ${resultLabel}`}>Download</a>
+            {localPath && (
+              <button
+                type="button"
+                className="work-copy-path"
+                onClick={copyPath}
+                aria-label={`Copy the local file path for ${resultLabel}`}
+                title={localPath}
+              >
+                {pathCopied ? "Copied" : "Copy path"}
+              </button>
+            )}
             {onDelete && shot.archive_id && (
               <button type="button" className="work-delete" onClick={() => setConfirmingDelete(true)} aria-label={`Delete ${resultLabel}`}>
                 Delete
@@ -228,6 +253,17 @@ function Shot({ shot, onDelete, onToggleStar, onSetClient, clients = [], onSetSe
               <div><dt>Cost</dt><dd>{verified ? "Verified billed amount" : "Estimate"} · ${Number(shot.cost ?? 0).toFixed(4)}</dd></div>
               {shot.request_id && <div><dt>Request</dt><dd>{shot.request_id}</dd></div>}
               <div><dt>Archive</dt><dd>{shot.outputs.some((output) => output.local_url) ? "Saved locally" : "Remote copy only"}</dd></div>
+              {localPath && (
+                <div>
+                  <dt>Local path</dt>
+                  <dd className="work-path-row">
+                    <code>{localPath}</code>
+                    <button type="button" onClick={copyPath} aria-label={`Copy the local file path for ${resultLabel}`}>
+                      {pathCopied ? "Copied" : "Copy"}
+                    </button>
+                  </dd>
+                </div>
+              )}
               {onSetClient && shot.archive_id && (
                 <div>
                   <dt>Client</dt>

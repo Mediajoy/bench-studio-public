@@ -1048,6 +1048,10 @@ p { text-wrap: pretty; }
 .work-details > strong { color: var(--text); font-size: 12px; }
 .work-details > p { max-height: 170px; margin: 0; overflow-y: auto; color: var(--text-2); font-size: 12px; line-height: 1.55; }
 .hosted-copy { width: max-content; color: var(--accent); font-size: 12px; font-weight: 700; }
+.work-path-row { display: flex; align-items: center; gap: 8px; }
+.work-path-row code { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 11px; }
+.work-path-row button { flex: none; color: var(--text-2); font-size: 12px; background: none; border: none; cursor: pointer; padding: 0; }
+.work-path-row button:hover { color: var(--accent); }
 .work-delete-confirm { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 13px; padding: 12px; border: 1px solid rgba(241,141,130,.42); border-radius: 9px; background: rgba(241,141,130,.075); }
 .work-delete-confirm > div:first-child { display: grid; gap: 3px; min-width: 0; }
 .work-delete-confirm strong { color: var(--text); font-size: 12px; }
