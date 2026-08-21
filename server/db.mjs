@@ -494,7 +494,7 @@ export function createStore({ dbPath, legacyLedgerPath }) {
 
   function missingOutputAssets(limit = 50) {
     return db.prepare(`
-      SELECT assets.*, generations.request_id, generations.ts
+      SELECT assets.*, generations.request_id, generations.ts, generations.label
       FROM assets JOIN generations ON generations.id = assets.generation_id
       WHERE assets.role = 'output' AND assets.remote_url IS NOT NULL AND assets.local_url IS NULL
       ORDER BY generations.ts DESC LIMIT ?

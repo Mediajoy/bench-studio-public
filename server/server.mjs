@@ -1471,24 +1471,53 @@ function localUploadCopy(file) {
   };
 }
 
-async function mirrorRemoteAsset(remoteUrl, identity, position = 0) {
+function slugify(text, maxLength = 60) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, maxLength)
+    .replace(/-+$/g, "");
+}
+
+// A human-readable filename instead of a bare provider request id (the old
+// scheme — df51cbd33db5dfcee8fba44de0857a60-0.png tells you nothing about
+// what it is without opening it or cross-referencing the ledger). The
+// short id suffix (first 8 chars of the provider's request_id, or a random
+// fallback) isn't there to be meaningful — it's there so two same-day
+// generations with an identical/near-identical prompt can't collide and
+// silently overwrite each other, while keeping enough of the original id
+// around to trace a file back to its ledger row if ever needed.
+function meaningfulFilename({ text, date, requestId, position = 0, extension }) {
+  const slug = slugify(text) || "render";
+  const day = (date || new Date().toISOString()).slice(0, 10);
+  const shortId = String(requestId ?? "").replace(/[^a-zA-Z0-9]/g, "").slice(0, 8) || randomUUID().slice(0, 8);
+  const positionSuffix = position > 0 ? `-${position}` : "";
+  return `${slug}_${day}${positionSuffix}_${shortId}${extension}`;
+}
+
+async function mirrorRemoteAsset(remoteUrl, descriptor, position = 0) {
   const response = await fetch(remoteUrl);
   if (!response.ok || !response.body) throw new Error(`media download HTTP ${response.status}`);
   const contentType = response.headers.get("content-type")?.split(";")[0] ?? null;
   const extension = safeExtension(new URL(remoteUrl).pathname, contentType);
-  const safeIdentity = String(identity || randomUUID()).replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 90);
-  const filename = `${safeIdentity}-${position}${extension}`;
+  const filename = meaningfulFilename({ ...descriptor, position, extension });
   const localPath = join(OUTPUTS, filename);
   await pipeline(Readable.fromWeb(response.body), createWriteStream(localPath));
   return { local_path: localPath, local_url: `/media/${filename}`, content_type: contentType };
 }
 
-async function mirrorOutputs(outputs, requestId) {
+// `meta` is either a descriptor object ({ text, date, requestId } — `text`
+// should be the prompt/raw_idea, falling back to a model label, so
+// filenames read as what was actually asked for) or, for callers not yet
+// updated, a bare request-id string.
+async function mirrorOutputs(outputs, meta) {
+  const descriptor = typeof meta === "string" ? { requestId: meta } : meta;
   const mirrored = [];
   for (let index = 0; index < outputs.length; index++) {
     const output = outputs[index];
     try {
-      const local = await mirrorRemoteAsset(output.url, requestId, index);
+      const local = await mirrorRemoteAsset(output.url, descriptor, index);
       mirrored.push({ ...output, ...local, remote_url: output.url });
     } catch (error) {
       console.warn(`media mirror failed for ${output.url}: ${error.message}`);
@@ -1503,7 +1532,11 @@ async function backfillMediaMirrors() {
   let mirrored = 0;
   for (const asset of missing) {
     try {
-      const local = await mirrorRemoteAsset(asset.remote_url, asset.request_id || `legacy-${asset.generation_id}`, asset.position);
+      const local = await mirrorRemoteAsset(
+        asset.remote_url,
+        { text: asset.label || `legacy-${asset.generation_id}`, date: asset.ts, requestId: asset.request_id },
+        asset.position
+      );
       store.updateAssetMirror(asset.id, {
         localPath: local.local_path,
         localUrl: local.local_url,
@@ -2159,7 +2192,7 @@ app.post("/api/generate", async (req, res) => {
     // does not set the header.
     const priced = actualCost(modelId, billableUnits) ?? pre;
     const { cost, confidence, basis } = priced;
-    const outputs = await mirrorOutputs(extractUrls(result), q.request_id);
+    const outputs = await mirrorOutputs(extractUrls(result), { text: rawIdea || prompt || model.label, requestId: q.request_id });
     const row = {
       ts: new Date().toISOString(),
       model: modelId,
@@ -2264,7 +2297,7 @@ app.post("/api/generate-kie", async (req, res) => {
       onUpdate: (state) => send({ phase: "status", status: state }),
     });
     const url = kieExtractUrl(data);
-    const outputs = await mirrorOutputs([{ url }], taskId);
+    const outputs = await mirrorOutputs([{ url }], { text: rawIdea || prompt, requestId: taskId });
 
     const row = {
       ts: new Date().toISOString(),
@@ -2348,7 +2381,7 @@ app.post("/api/generate-wavespeed", async (req, res) => {
       onUpdate: (status) => send({ phase: "status", status }),
     });
     const url = wavespeedExtractUrl(data);
-    const outputs = await mirrorOutputs([{ url }], taskId);
+    const outputs = await mirrorOutputs([{ url }], { text: rawIdea || prompt, requestId: taskId });
 
     const row = {
       ts: new Date().toISOString(),
@@ -2454,7 +2487,7 @@ app.post("/api/generate-heygen", async (req, res) => {
       onUpdate: (status) => send({ phase: "status", status }),
     });
     const url = heygenExtractUrl(data);
-    const outputs = await mirrorOutputs([{ url }], videoId);
+    const outputs = await mirrorOutputs([{ url }], { text: rawIdea || heygenKey, requestId: videoId });
 
     const row = {
       ts: new Date().toISOString(),
