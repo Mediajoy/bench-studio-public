@@ -506,6 +506,18 @@ export function createStore({ dbPath, legacyLedgerPath }) {
       .run(localPath, localUrl, contentType ?? null, assetId);
   }
 
+  // WAL mode (enabled above) means a plain file copy of bench.db can miss
+  // committed data still sitting in bench.db-wal, silently producing a
+  // truncated/corrupt backup — the failure mode a naive `cp` backup hit
+  // before this existed. VACUUM INTO is SQLite's own safe path: it reads
+  // through the WAL correctly and writes a single consolidated, immediately
+  // valid database file, no separate -wal/-shm needed for the copy. Safe to
+  // run against the live connection while the server keeps serving
+  // requests — it's read-only from this connection's perspective.
+  function backupTo(destPath) {
+    db.prepare("VACUUM INTO ?").run(destPath);
+  }
+
   function recordCapabilityCheck(check) {
     db.prepare(`
       INSERT INTO capability_checks (
@@ -627,6 +639,7 @@ export function createStore({ dbPath, legacyLedgerPath }) {
     recordUpload,
     missingOutputAssets,
     updateAssetMirror,
+    backupTo,
     recordCapabilityCheck,
     capabilityChecks,
     storageSummary,

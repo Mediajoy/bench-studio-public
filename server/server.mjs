@@ -33,6 +33,7 @@ const INPUTS = join(DATA, "inputs");
 const DATABASE = join(DATA, "bench.db");
 const PROJECTS = join(DATA, "projects");
 const CATALOG_CACHE = join(DATA, "catalog-sync.json");
+const BACKUPS = join(DATA, "backups");
 const CAPABILITY_FILE = join(HERE, "capabilities.json");
 const SKILL_PACKAGES = join(HERE, "..", "integrations", "skills");
 const MCP_NODE = existsSync("/opt/homebrew/bin/node") ? "/opt/homebrew/bin/node" : process.execPath;
@@ -68,9 +69,54 @@ mkdirSync(OUTPUTS, { recursive: true });
 mkdirSync(PREVIEWS, { recursive: true });
 mkdirSync(INPUTS, { recursive: true });
 mkdirSync(PROJECTS, { recursive: true });
+mkdirSync(BACKUPS, { recursive: true });
 const store = createStore({ dbPath: DATABASE, legacyLedgerPath: LEDGER });
 const migratedRows = store.migrateLegacyLedger();
 if (migratedRows) console.log(`migrated ${migratedRows} legacy ledger rows into SQLite`);
+
+// ---------------------------------------------------------------- db backup
+//
+// The previous approach (a plain file copy of bench.db) was unreliable —
+// WAL mode (db.mjs's PRAGMA journal_mode = WAL) means recent commits can
+// sit in bench.db-wal rather than bench.db itself, so a `cp` of just the
+// main file can silently miss data or, worse, land mid-write and produce a
+// backup that's not even valid SQLite. store.backupTo() uses SQLite's own
+// VACUUM INTO instead — reads correctly through the WAL, writes one
+// consolidated, immediately-valid file. Runs every 15 minutes for the
+// lifetime of this server process (not a cron job — starts when `npm run
+// dev`/`node server.mjs` starts, stops when it stops), plus once
+// immediately on startup so a session that ends inside the first 15
+// minutes still has a backup. Keeps the last 48 (12 hours at this
+// interval) and prunes older ones — data/backups/ would otherwise grow
+// without bound over a long-running session.
+const BACKUP_INTERVAL_MS = 15 * 60 * 1000;
+const BACKUP_RETENTION_COUNT = 48;
+
+function runDatabaseBackup() {
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const destPath = join(BACKUPS, `bench-${stamp}.db`);
+  try {
+    store.backupTo(destPath);
+    console.log(`db backup -> ${destPath}`);
+  } catch (error) {
+    console.warn(`db backup failed: ${error.message}`);
+    return;
+  }
+  try {
+    const files = readdirSync(BACKUPS)
+      .filter((name) => name.startsWith("bench-") && name.endsWith(".db"))
+      .sort(); // ISO-ish timestamp in the filename sorts chronologically as a plain string
+    const excess = files.length - BACKUP_RETENTION_COUNT;
+    for (const name of files.slice(0, Math.max(0, excess))) {
+      unlinkSync(join(BACKUPS, name));
+    }
+  } catch (error) {
+    console.warn(`db backup rotation failed: ${error.message}`);
+  }
+}
+
+runDatabaseBackup();
+setInterval(runDatabaseBackup, BACKUP_INTERVAL_MS);
 
 // ---------------------------------------------------------------- registry + profiles + pricing
 
