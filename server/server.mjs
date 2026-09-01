@@ -19,7 +19,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { spawn } from "node:child_process";
 import { readCatalogSync, syncFalCatalog } from "./catalog_sync.mjs";
-import { createStore } from "./db.mjs";
+import { createStore, OUTCOME_VALUES } from "./db.mjs";
 import { loadOrBuildCapabilityManifest } from "./build_capabilities.mjs";
 import { validateParams } from "./format_gate.mjs";
 import { checkDeprecation } from "./deprecation.mjs";
@@ -1949,6 +1949,28 @@ app.patch("/api/results/:id/client", (req, res) => {
 // Same, for the series sub-category under client.
 app.patch("/api/results/:id/series", (req, res) => {
   const updated = store.setSeries(req.params.id, req.body?.series ?? null);
+  if (!updated) return res.status(404).json({ error: "Result not found" });
+  res.json(updated);
+});
+
+// Fixed-vocabulary QA outcome for this result — separate from starred.
+// Server-side enum check (not just the client <select>) so a stale UI, a
+// future API consumer, or a typo'd script call can't silently write a
+// value the vocabulary doesn't define.
+app.patch("/api/results/:id/outcome", (req, res) => {
+  const outcome = req.body?.outcome ?? null;
+  if (outcome !== null && !OUTCOME_VALUES.includes(outcome)) {
+    return res.status(400).json({ error: `outcome must be one of: ${OUTCOME_VALUES.join(", ")}` });
+  }
+  const updated = store.setOutcome(req.params.id, outcome);
+  if (!updated) return res.status(404).json({ error: "Result not found" });
+  res.json(updated);
+});
+
+// Freeform note alongside the outcome — its own route so a note can save
+// on blur independently of the outcome dropdown's immediate on-change save.
+app.patch("/api/results/:id/outcome-note", (req, res) => {
+  const updated = store.setOutcomeNote(req.params.id, req.body?.outcome_note ?? null);
   if (!updated) return res.status(404).json({ error: "Result not found" });
   res.json(updated);
 });

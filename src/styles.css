@@ -1029,6 +1029,9 @@ p { text-wrap: pretty; }
 .work-client { flex: none; max-width: 110px; overflow: hidden; padding: 2px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 11px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .work-series { background: var(--panel-raised); color: var(--text-2); }
 .work-details select { padding: 5px 8px; border: 1px solid var(--line-bright); border-radius: 6px; background: var(--panel-raised); color: var(--text); font-family: var(--sans); font-size: 12px; }
+.work-outcome-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+.work-outcome-select { padding: 5px 8px; border: 1px solid var(--line-bright); border-radius: 6px; background: var(--panel-raised); color: var(--text); font-family: var(--sans); font-size: 12px; }
+.work-outcome-note { display: block; width: 100%; margin-top: 6px; padding: 6px 8px; border: 1px solid var(--line-bright); border-radius: 6px; background: var(--panel-raised); color: var(--text); font-family: var(--sans); font-size: 12px; line-height: 1.4; resize: vertical; }
 .work-details-hint { color: var(--text-3); font-style: italic; }
 .work-actions { display: flex; align-items: center; gap: 8px; }
 .work-foot a, .work-actions button { flex: none; color: var(--text-2); font-size: 12px; text-decoration: none; }

@@ -640,6 +640,42 @@ export default function App() {
     }
   }
 
+  // Fixed-vocabulary QA outcome — same optimistic-update-then-PATCH shape as
+  // setShotClient/setShotSeries, minus the "filter out of the active view"
+  // step since there's no outcome-based view filter today.
+  async function setShotOutcome(shot, outcome) {
+    if (!shot?.archive_id) return;
+    const previous = shot.outcome;
+    setShots((current) => current.map((s) => (s.archive_id === shot.archive_id ? { ...s, outcome } : s)));
+    try {
+      await readJson(`/api/results/${encodeURIComponent(shot.archive_id)}/outcome`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ outcome }),
+      });
+    } catch (outcomeError) {
+      setShots((current) => current.map((s) => (s.archive_id === shot.archive_id ? { ...s, outcome: previous } : s)));
+      setError(`Could not update outcome: ${outcomeError.message ?? outcomeError}`);
+    }
+  }
+
+  // Freeform note alongside the outcome — same shape, its own route.
+  async function setShotOutcomeNote(shot, note) {
+    if (!shot?.archive_id) return;
+    const previous = shot.outcome_note;
+    setShots((current) => current.map((s) => (s.archive_id === shot.archive_id ? { ...s, outcome_note: note } : s)));
+    try {
+      await readJson(`/api/results/${encodeURIComponent(shot.archive_id)}/outcome-note`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ outcome_note: note }),
+      });
+    } catch (noteError) {
+      setShots((current) => current.map((s) => (s.archive_id === shot.archive_id ? { ...s, outcome_note: previous } : s)));
+      setError(`Could not update outcome note: ${noteError.message ?? noteError}`);
+    }
+  }
+
   useEffect(() => {
     if (!model) return;
     const next = {};
@@ -1052,7 +1088,7 @@ export default function App() {
                 )}
                 {(job || shots.length > 0) && (
                   <section className="create-results" id="create-results" aria-label="Generated media">
-                    <Work job={job} shots={shots} onDelete={deleteResult} onToggleStar={toggleStar} onSetClient={setShotClient} clients={clients} activeClient={activeClient} onSetSeries={setShotSeries} activeSeries={activeSeries} pendingSeries={pendingSeries} />
+                    <Work job={job} shots={shots} onDelete={deleteResult} onToggleStar={toggleStar} onSetClient={setShotClient} clients={clients} activeClient={activeClient} onSetSeries={setShotSeries} activeSeries={activeSeries} pendingSeries={pendingSeries} onSetOutcome={setShotOutcome} onSetOutcomeNote={setShotOutcomeNote} />
                   </section>
                 )}
               </section>}
@@ -1068,7 +1104,7 @@ export default function App() {
                     <a className="view-action" href="#create">Create another</a>
                   </div>
                   {error && <ErrorNotice error={error} onClose={() => setError(null)} />}
-                  <Work job={job} shots={shots} standalone onDelete={deleteResult} onToggleStar={toggleStar} onSetClient={setShotClient} clients={clients} activeClient={activeClient} onSetSeries={setShotSeries} activeSeries={activeSeries} pendingSeries={pendingSeries} />
+                  <Work job={job} shots={shots} standalone onDelete={deleteResult} onToggleStar={toggleStar} onSetClient={setShotClient} clients={clients} activeClient={activeClient} onSetSeries={setShotSeries} activeSeries={activeSeries} pendingSeries={pendingSeries} onSetOutcome={setShotOutcome} onSetOutcomeNote={setShotOutcomeNote} />
                 </section>
               )}
 

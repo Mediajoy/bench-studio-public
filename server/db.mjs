@@ -44,6 +44,34 @@ export function normalizeSeries(value) {
   return normalizeSlug(value);
 }
 
+// Fixed-vocabulary QA outcome for a single generation — deliberately small
+// and closed, unlike client/series (open slugs). `prompt_followed` is a real,
+// distinct value rather than using null for "it was fine" — null means "not
+// reviewed yet," a different state from "reviewed, and it matched intent."
+// Enforced both here (setOutcome throws on anything outside this list) and
+// at the route in server.mjs (returns a clean 400) so the vocabulary can't
+// be silently widened by a stale UI or a raw API call.
+export const OUTCOME_VALUES = [
+  "prompt_followed",
+  "wrong_prompt",
+  "wrong_background",
+  "wrong_likeness",
+  "artifact_seam",
+  "ignored_reference",
+  "wrong_framing",
+  // These three separate two different failure sources: whether the model
+  // did what the SENT PROMPT said (a model/technical problem — the prompt
+  // was right, the model just didn't follow it), vs. whether the prompt
+  // even captured what was actually being asked for in the first place (a
+  // communication gap upstream of the model, reviewed against the
+  // freeform `intent` field — what the user actually asked for, distinct
+  // from the engineered prompt shown in Details).
+  "intent_followed",
+  "intent_not_followed",
+  "instructions_incomplete",
+  "other",
+];
+
 // Three-state filter shared by every read path that can be scoped to a
 // client or series column, so they can't drift from each other:
 //   undefined/null -> no filter (today's behavior, backward compatible)
@@ -98,7 +126,9 @@ export function createStore({ dbPath, legacyLedgerPath }) {
       payload_json TEXT NOT NULL,
       starred INTEGER NOT NULL DEFAULT 0,
       client TEXT,
-      series TEXT
+      series TEXT,
+      outcome TEXT,
+      outcome_note TEXT
     );
     CREATE INDEX IF NOT EXISTS generations_ts_idx ON generations(ts DESC);
     CREATE INDEX IF NOT EXISTS generations_model_idx ON generations(model_id, ts DESC);
@@ -209,6 +239,24 @@ export function createStore({ dbPath, legacyLedgerPath }) {
     db.exec("ALTER TABLE generations ADD COLUMN series TEXT");
   }
   db.exec("CREATE INDEX IF NOT EXISTS generations_client_series_idx ON generations(client, series, ts DESC)");
+
+  // Same retrofit pattern again — outcome/outcome_note added after this
+  // table already existed on disk for real users. outcome gets an index
+  // since it's meant to be filtered/grouped on later ("which models keep
+  // failing at X"); outcome_note is freeform text, never filtered on, same
+  // reasoning as no index on payload_json.
+  const hasOutcomeColumn = db.prepare("PRAGMA table_info(generations)").all()
+    .some((col) => col.name === "outcome");
+  if (!hasOutcomeColumn) {
+    db.exec("ALTER TABLE generations ADD COLUMN outcome TEXT");
+  }
+  db.exec("CREATE INDEX IF NOT EXISTS generations_outcome_idx ON generations(outcome, ts DESC)");
+
+  const hasOutcomeNoteColumn = db.prepare("PRAGMA table_info(generations)").all()
+    .some((col) => col.name === "outcome_note");
+  if (!hasOutcomeNoteColumn) {
+    db.exec("ALTER TABLE generations ADD COLUMN outcome_note TEXT");
+  }
 
   const insertGeneration = db.prepare(`
     INSERT INTO generations (
@@ -321,6 +369,8 @@ export function createStore({ dbPath, legacyLedgerPath }) {
       // old name).
       client: record.client ?? null,
       series: record.series ?? null,
+      outcome: record.outcome ?? null,
+      outcome_note: record.outcome_note ?? null,
       outputs: assets.map((asset) => ({
         url: asset.remote_url,
         remote_url: asset.remote_url,
@@ -365,6 +415,30 @@ export function createStore({ dbPath, legacyLedgerPath }) {
     const numericId = Number(id);
     if (!Number.isInteger(numericId) || numericId < 1) return null;
     db.prepare("UPDATE generations SET series = ? WHERE id = ?").run(normalizeSeries(series), numericId);
+    const record = db.prepare("SELECT * FROM generations WHERE id = ?").get(numericId);
+    return record ? generationRow(record) : null;
+  }
+
+  function setOutcome(id, outcome) {
+    const numericId = Number(id);
+    if (!Number.isInteger(numericId) || numericId < 1) return null;
+    // null clears back to "not reviewed yet" — mirrors setClient/setSeries
+    // accepting null to unassign. Any non-null value must be in the fixed
+    // vocabulary; checked here (not just at the route) so every caller —
+    // the route, a future script, tests — gets the same guarantee.
+    if (outcome !== null && !OUTCOME_VALUES.includes(outcome)) {
+      throw new Error(`setOutcome: '${outcome}' is not in the fixed outcome vocabulary`);
+    }
+    db.prepare("UPDATE generations SET outcome = ? WHERE id = ?").run(outcome, numericId);
+    const record = db.prepare("SELECT * FROM generations WHERE id = ?").get(numericId);
+    return record ? generationRow(record) : null;
+  }
+
+  function setOutcomeNote(id, note) {
+    const numericId = Number(id);
+    if (!Number.isInteger(numericId) || numericId < 1) return null;
+    const trimmed = note == null ? null : String(note).trim().slice(0, 2000) || null;
+    db.prepare("UPDATE generations SET outcome_note = ? WHERE id = ?").run(trimmed, numericId);
     const record = db.prepare("SELECT * FROM generations WHERE id = ?").get(numericId);
     return record ? generationRow(record) : null;
   }
@@ -634,6 +708,8 @@ export function createStore({ dbPath, legacyLedgerPath }) {
     setSeries,
     listSeries,
     renameSeries,
+    setOutcome,
+    setOutcomeNote,
     deleteGeneration,
     spendSummary,
     recordUpload,

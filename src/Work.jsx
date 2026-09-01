@@ -12,7 +12,25 @@ const FORMAT_LABELS = {
   poster: "Ad with headline",
 };
 
-export default function Work({ job, shots, standalone = false, onDelete, onToggleStar, onSetClient, clients = [], activeClient = "", onSetSeries, activeSeries = "", pendingSeries = {} }) {
+// Fixed QA vocabulary — mirrors OUTCOME_VALUES in server/db.mjs. No shared
+// import path between frontend and backend in this codebase (same as
+// FORMAT_LABELS above having no server-side counterpart to import from),
+// so keep these two lists in sync by hand if the vocabulary ever changes.
+const OUTCOME_LABELS = {
+  prompt_followed: "Prompt followed",
+  wrong_prompt: "Wrong prompt / misread instructions",
+  wrong_background: "Wrong background",
+  wrong_likeness: "Wrong likeness / identity drift",
+  artifact_seam: "Artifact or seam",
+  ignored_reference: "Ignored reference image",
+  wrong_framing: "Wrong framing / composition",
+  intent_followed: "Intent followed",
+  intent_not_followed: "Intent not followed",
+  instructions_incomplete: "Instructions incomplete",
+  other: "Other",
+};
+
+export default function Work({ job, shots, standalone = false, onDelete, onToggleStar, onSetClient, clients = [], activeClient = "", onSetSeries, activeSeries = "", pendingSeries = {}, onSetOutcome, onSetOutcomeNote }) {
   const clientLabel = activeClient === "__none__" ? "Unassigned"
     : activeClient ? displayName(activeClient)
     : null;
@@ -48,6 +66,8 @@ export default function Work({ job, shots, standalone = false, onDelete, onToggl
               clients={clients}
               onSetSeries={onSetSeries}
               pendingSeries={pendingSeries}
+              onSetOutcome={onSetOutcome}
+              onSetOutcomeNote={onSetOutcomeNote}
             />
           ))}
         </div>
@@ -72,7 +92,7 @@ function Job({ job }) {
   );
 }
 
-function Shot({ shot, onDelete, onToggleStar, onSetClient, clients = [], onSetSeries, pendingSeries = {} }) {
+function Shot({ shot, onDelete, onToggleStar, onSetClient, clients = [], onSetSeries, pendingSeries = {}, onSetOutcome, onSetOutcomeNote }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -81,6 +101,9 @@ function Shot({ shot, onDelete, onToggleStar, onSetClient, clients = [], onSetSe
   const [assigningSeries, setAssigningSeries] = useState(false);
   const [seriesOptions, setSeriesOptions] = useState([]);
   const [pathCopied, setPathCopied] = useState(false);
+  const [savingOutcome, setSavingOutcome] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
+  const [noteDraft, setNoteDraft] = useState(shot.outcome_note ?? "");
   const verified = shot.cost_confidence === "verified";
   const formatLabel = FORMAT_LABELS[shot.format];
   const idea = String(shot.raw_idea || shot.prompt || "").trim();
@@ -150,6 +173,26 @@ function Shot({ shot, onDelete, onToggleStar, onSetClient, clients = [], onSetSe
       await onSetSeries?.(shot, next);
     } finally {
       setAssigningSeries(false);
+    }
+  }
+
+  async function assignOutcome(event) {
+    const next = event.target.value || null;
+    setSavingOutcome(true);
+    try {
+      await onSetOutcome?.(shot, next);
+    } finally {
+      setSavingOutcome(false);
+    }
+  }
+
+  async function commitOutcomeNote() {
+    if (noteDraft === (shot.outcome_note ?? "")) return; // nothing changed since last save
+    setSavingNote(true);
+    try {
+      await onSetOutcomeNote?.(shot, noteDraft || null);
+    } finally {
+      setSavingNote(false);
     }
   }
 
@@ -246,6 +289,39 @@ function Shot({ shot, onDelete, onToggleStar, onSetClient, clients = [], onSetSe
           </div>
         </div>
         <div className="p">{idea}</div>
+        {onSetOutcome && shot.archive_id && (
+          <div className="work-outcome-row">
+            <select
+              value={shot.outcome ?? ""}
+              onChange={assignOutcome}
+              disabled={savingOutcome}
+              aria-label={`Record outcome for ${resultLabel}`}
+              className="work-outcome-select"
+            >
+              <option value="" disabled>Not reviewed yet</option>
+              {Object.entries(OUTCOME_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {onSetOutcomeNote && shot.outcome && (
+          // Only appears once an outcome is actually picked — for ANY
+          // option, not just "other" — and is a real multi-line box rather
+          // than a single-line field, since the whole point is room to
+          // explain the pick (e.g. what the original intent was, or what
+          // exactly the model got wrong), not a one-word tag.
+          <textarea
+            className="work-outcome-note"
+            placeholder="Add detail (optional) — e.g. what you actually asked for, or what went wrong"
+            value={noteDraft}
+            onChange={(e) => setNoteDraft(e.target.value)}
+            onBlur={commitOutcomeNote}
+            disabled={savingNote}
+            rows={2}
+            aria-label={`Outcome note for ${resultLabel}`}
+          />
+        )}
         {detailsOpen && (
           <div className="work-details">
             <dl>
@@ -291,8 +367,28 @@ function Shot({ shot, onDelete, onToggleStar, onSetClient, clients = [], onSetSe
                 </div>
               )}
             </dl>
-            <strong>Prompt sent</strong>
-            <p>{shot.prompt}</p>
+            {shot.prompt ? (
+              <>
+                <strong>Prompt sent</strong>
+                <p>{shot.prompt}</p>
+              </>
+            ) : shot.params && Object.keys(shot.params).length > 0 ? (
+              // Some models (outpaint, expand) take no prompt at all — the
+              // "recipe" that actually produced this render lives in params
+              // instead (e.g. expand_left/expand_right pixel amounts). Without
+              // this, Details showed nothing useful for those cards at all.
+              <>
+                <strong>Settings sent</strong>
+                <dl>
+                  {Object.entries(shot.params).map(([key, value]) => (
+                    <div key={key}>
+                      <dt>{key}</dt>
+                      <dd title={String(value)}>{String(value)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </>
+            ) : null}
             {shot.outputs[0]?.remote_url && <a className="hosted-copy" href={shot.outputs[0].remote_url} target="_blank" rel="noreferrer">Open fal-hosted copy ↗</a>}
           </div>
         )}

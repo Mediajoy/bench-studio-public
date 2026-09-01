@@ -60,6 +60,16 @@ const ROSTER = [
   { id: "bytedance/seedream/v5/pro/edit",             kind: "image", lane: "i2i", label: "Seedream 5 edit",      vendor: "ByteDance" },
   { id: "alibaba/qwen-image-3/edit",                  kind: "image", lane: "i2i", label: "Qwen Image 3 edit",    vendor: "Alibaba" },
   { id: "fal-ai/flux-2-pro/edit",                     kind: "image", lane: "i2i", label: "FLUX.2 pro edit",      vendor: "Black Forest Labs" },
+  // Masked inpaint / canvas outpaint — added 2026-09-01 so a precise,
+  // nothing-else-changes edit (fix one region via mask, or extend the
+  // canvas a few px on one or more sides) can run through Bench's own
+  // ledger instead of a raw fal.run curl call that never shows up in the UI.
+  // Endpoint ids + param shapes confirmed live via fal's own docs pages
+  // (fal.ai/models/fal-ai/flux-pro/v1/fill/api and
+  // .../flux-2-pro/outpaint/api) — image_url/mask_url for fill,
+  // image_url + expand_top/bottom/left/right for outpaint.
+  { id: "fal-ai/flux-pro/v1/fill",                    kind: "image", lane: "i2i", label: "FLUX.1 Fill pro (inpaint)", vendor: "Black Forest Labs" },
+  { id: "fal-ai/flux-2-pro/outpaint",                 kind: "image", lane: "i2i", label: "FLUX.2 pro Outpaint",       vendor: "Black Forest Labs" },
 
   // --- video from text ---
   { id: "lightricks/ltx-2.5/text-to-video/fast",          kind: "video", lane: "t2v", label: "LTX 2.5 fast",   vendor: "Lightricks", tier: "fastest", pair: "lightricks/ltx-2.5/image-to-video/fast" },
@@ -123,6 +133,11 @@ const SURFACE = new Set([
   "video_url", "video_urls", "reference_video_urls",
   "audio_url", "audio_urls", "reference_audio_urls", "pdf_url",
   "mask_url", "elements", "multi_prompt",
+  // per-side canvas expansion (fal-ai/flux-2-pro/outpaint) — pixels to add
+  // on each edge; default 0 if omitted, so surfacing them is what lets a
+  // "just expand the sides a little" request actually be expressed as a
+  // control instead of silently staying at 0 on every side.
+  "expand_top", "expand_bottom", "expand_left", "expand_right", "auto_crop",
   // real creative controls some endpoints expose
   "camera_motion", "shot_type", "thinking_level",
   // models that rewrite your prompt for you. We already wrote it deliberately,

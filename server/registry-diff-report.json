@@ -1,12 +1,10 @@
 {
-  "generated_at": "2026-08-19T04:22:33.757Z",
-  "compared_against": "2026-08-19T04:13:11.998Z",
+  "generated_at": "2026-09-01T21:55:24.334Z",
+  "compared_against": "2026-09-01T21:54:22.642Z",
   "added": [],
   "removed": [],
   "changed": [
-    "fal-ai/echomimic-v3",
-    "fal-ai/infinitalk",
-    "fal-ai/latentsync"
+    "fal-ai/flux-2-pro/outpaint"
   ],
-  "unchanged_count": 40
+  "unchanged_count": 44
 }
